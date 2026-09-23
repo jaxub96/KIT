@@ -1,0 +1,6 @@
+__pycache__/
+.DS_Store
+
+# Blender auto-save backups
+*.blend1
+*.blend2

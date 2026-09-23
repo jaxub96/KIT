@@ -1,0 +1,16 @@
+# Asset Catalog Definition file for Blender.
+#
+# Empty lines and lines starting with `#` will be ignored.
+# The first non-ignored line should be the version indicator.
+# Other lines are of the format "UUID:catalog tree path:simple catalog name"
+
+VERSION 1
+
+028d75ec-2cab-4734-8b87-d2f82a88c1aa:Kit:Kit
+3bc920fb-3690-47d9-93bb-93041a16a9ff:Kit/Walls:Kit-Walls
+b13441f0-d314-4057-84fd-3990aafa151b:Kit/Roofs:Kit-Roofs
+c15a11d7-334d-4760-9369-756aa4adf059:Kit/Trim:Kit-Trim
+45b4d690-e938-4fb0-902c-8c1044cbe921:Kit/Interior:Kit-Interior
+61ca03f7-12b4-40a5-96a9-51bf3ba6f48d:Kit/Streets:Kit-Streets
+5ea179c4-199c-4f7f-9f18-1c59c1e8a865:Kit/Furniture:Kit-Furniture
+c9ec0d1e-978c-4254-bd6e-425c0c08de57:Kit/Structures:Kit-Structures
