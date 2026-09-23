@@ -8,10 +8,13 @@ from mathutils import Vector
 
 
 def boundary_loop(mesh, axis, value, eps=1e-4):
-    """Ordered closed loop of the open edges lying on the plane
-    co[axis] == value. Returns (points, material_indices) where points are
-    the vertex coordinates (Vector) in cycle order and material_indices[i]
-    is the material of the face behind the edge points[i] -> points[i+1]."""
+    """Ordered loop of the open edges lying on the plane co[axis] == value.
+    Returns (points, material_indices): points in cycle order, material_indices[i]
+    = material of the face behind the edge points[i] -> points[i+1]. An end that
+    is open top AND bottom (a wall bay with open storey seams) is two chains,
+    not a ring: they are joined end to end at matching z (top to top, bottom to
+    bottom), so the joining edges are exactly the 'lid' edges a corner skips;
+    their material entry repeats the neighbouring edge's."""
     bm = bmesh.new()
     bm.from_mesh(mesh)
     edges = [e for e in bm.edges if len(e.link_faces) == 1
@@ -21,31 +24,44 @@ def boundary_loop(mesh, axis, value, eps=1e-4):
         a, b = e.verts
         adj.setdefault(a, []).append((b, e))
         adj.setdefault(b, []).append((a, e))
-    start = edges[0].verts[0]
-    order, mats, prev, cur, seen = [start], [], None, start, set()
-    while True:
-        nxt = None
-        for (w, e) in adj[cur]:
-            if e in seen:
-                continue
-            nxt = (w, e)
-            break
-        if nxt is None:
-            break
-        w, e = nxt
-        seen.add(e)
-        mats.append(e.link_faces[0].material_index)
-        if w == start:
-            break
-        order.append(w)
-        cur = w
+    seen = set()
+
+    def walk(start):
+        order, mats, cur = [start], [], start
+        while True:
+            nxt = next(((w, e) for (w, e) in adj[cur] if e not in seen), None)
+            if nxt is None:
+                return order, mats, False
+            w, e = nxt
+            seen.add(e)
+            mats.append(e.link_faces[0].material_index)
+            if w == start:
+                return order, mats, True
+            order.append(w)
+            cur = w
+    ends = [v for v, nb in adj.items() if len(nb) == 1]
+    if not ends:
+        order, mats, _ = walk(edges[0].verts[0])
+    else:
+        order, mats = [], []
+        start = min(ends, key=lambda v: (v.co.z, v.co.y))
+        while True:
+            o, m, _ = walk(start)
+            order += o
+            mats += m
+            left = [v for v in ends if v not in order]
+            if not left:
+                break
+            last = o[-1]
+            start = min(left, key=lambda v: (abs(v.co.z - last.co.z), (v.co - last.co).length))
+            mats.append(mats[-1] if mats else 0)                     # the joining (lid) edge
     pts = [v.co.copy() for v in order]
     bm.free()
     return pts, mats
 
 
 def build_corner_from_bay(ob, bay_ob, kind_of_slot, mats_by_kind, zen_coll=None, T=0.4,
-                          nudge_top=False, nudge_bottom=False):
+                          nudge_top=False, nudge_bottom=False, seed=31, cap_top=False):
     """Mitre-sweep `bay_ob`'s end loop into a corner block.
 
     Local frame: outer corner at (0,0); plan [0,T]^2. The bay that runs along
@@ -89,9 +105,14 @@ def build_corner_from_bay(ob, bay_ob, kind_of_slot, mats_by_kind, zen_coll=None,
         # tile / roof closes it instead, same as any wall bay run). Capping
         # it here duplicated that closing face and made those edges
         # non-manifold once welded.
-        if abs(a.z - b.z) < 0.01 and (abs(a.z - zlo) < 0.01 or abs(a.z - zhi) < 0.01):
+        # cap_top: a corner the roof sits on keeps its TOP lid (the swept top
+        # edges -- or, when the bay's top is open, the one closing edge between
+        # the profile's two top ends), or you look down into the corner block
+        # right under the gable's corner post
+        lid_top = abs(a.z - b.z) < 0.01 and abs(a.z - zhi) < 0.01
+        if abs(a.z - b.z) < 0.01 and (abs(a.z - zlo) < 0.01 or abs(a.z - zhi) < 0.01) and not (cap_top and lid_top):
             continue
-        kind = kind_of_slot[mi[i]]
+        kind = kind_of_slot[mi[i]] if i < len(mi) else "timber"
         quads = [
             (V(T, a.y, a.z), V(T, b.y, b.z), V(b.y, b.y, b.z), V(a.y, a.y, a.z)),   # strip A
             (V(a.y, a.y, a.z), V(b.y, b.y, b.z), V(b.y, T, b.z), V(a.y, T, a.z)),   # strip B
@@ -121,6 +142,23 @@ def build_corner_from_bay(ob, bay_ob, kind_of_slot, mats_by_kind, zen_coll=None,
             v.co.z -= 0.004
         elif nudge_bottom and abs(v.co.z - zlo) < 1e-4:
             v.co.z += 0.004
+    # Hand-cut stone round the corner too: the bay's footing is jittered, a
+    # plain sweep of its end loop is not. Move the stone verts on the mitre
+    # line (the arris; never the two end loops, which must stay identical to
+    # the bays') out/in along the diagonal and up/down, stone-sized like the
+    # bay's own stone jitter; the bottom row stays on the ground.
+    import random
+    for v in bm.verts:
+        if abs(v.co.x - v.co.y) > 1e-5 or v.co.x > T - 1e-4:
+            continue
+        if not v.link_faces or any(kinds.get(f) != "stone" for f in v.link_faces):
+            continue
+        rnd = random.Random(hash((round(v.co.z, 3), round(v.co.x, 3), seed)))
+        d = (rnd.random() * 2 - 1) * 0.03
+        v.co.x -= d * 0.7071
+        v.co.y -= d * 0.7071
+        if abs(v.co.z - zlo) > 1e-4:
+            v.co.z += (rnd.random() * 2 - 1) * 0.02
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     bm.normal_update()
     TI = (300 / 256, 300 / 512)
@@ -137,6 +175,8 @@ def build_corner_from_bay(ob, bay_ob, kind_of_slot, mats_by_kind, zen_coll=None,
             set_wrap_uv(f, uvl, (0.566, 0.566), (0.0, 0.10))
         elif k == "plaster":
             set_window_uv(f, uvl, (1.5, 1.0), (0.12, 0.88, 0.43, 0.90))
+        elif abs(f.normal.z) > 0.9:                         # the top lid
+            set_wrap_uv(f, uvl, TI, (0.3, 0.0))
         else:
             set_beam_uv(f, uvl, "V", TI, 0.3, -0.1)
     write_piece(ob, bm)

@@ -126,3 +126,57 @@ def build_floor_tile(ob, mats, zen_coll=None, seed=41, closed_x0=False):
     if zen_coll is not None:
         make_export_copy(ob, zen_coll)
     return res
+
+
+# ---- ground floor: the same tile on a stone base, origin at ground level ----------
+FOOT = 0.46           # stone footing top = door threshold (wall_bay.FOOT)
+BASE_Z0 = 0.006       # the wall's inside face starts here (its open bottom rim)
+BASE_CUTS = (0.0, 0.15, 3.85, 4.0)   # the inside-face columns every wall bay shares (end posts)
+
+
+def add_ground_base(ob, stone_mat):
+    """Turn a built floor tile (build_floor_tile) into its ground-floor variant:
+    the tile itself is untouched, only lifted by FOOT so the planks sit on the
+    threshold while the origin stays on the ground; a stone base skirt is added
+    under every closed side (y=0, y=4, and x=0 on an END tile), from BASE_Z0 up
+    to the joist bottoms. The skirt lies in the wall's inside plane with its
+    vertices on the wall's own inside-face bottom row (x = BASE_CUTS,
+    z = BASE_Z0), so a joined house merges them by distance. It is its own
+    island (touching, not stitched, like the chimney on the roof): stitching it
+    to the deck edge would give that edge three faces."""
+    me = ob.data
+    closed_x0 = any(p.center.x < 1e-4 and abs(p.normal.x) > 0.9 for p in me.polygons)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    for v in bm.verts:
+        v.co.z += FOOT
+    top = FOOT - DECK - JOIST_DROP                                  # joist bottoms
+    col = {}
+
+    def vert(x, y, z):
+        k = (round(x, 4), round(y, 4), round(z, 4))
+        if k not in col:
+            col[k] = bm.verts.new(k)
+        return col[k]
+    sides = [(lambda s: (s, 0.0), (0, 1)), (lambda s: (s, 4.0), (0, -1))]
+    if closed_x0:
+        sides.append((lambda s: (0.0, s), (1, 0)))
+    if len(me.materials) < 3 or me.materials[2] != stone_mat:
+        me.materials.append(stone_mat)
+    uvl = bm.loops.layers.uv.get("Float2") or bm.loops.layers.uv.new("Float2")
+    new = []
+    for at, inward in sides:
+        for a, b in zip(BASE_CUTS, BASE_CUTS[1:]):
+            q = [vert(*at(a), BASE_Z0), vert(*at(b), BASE_Z0), vert(*at(b), top), vert(*at(a), top)]
+            f = bm.faces.new(q)
+            f.normal_update()
+            if f.normal.to_2d().dot(Vector(inward)) < 0:
+                f.normal_flip()
+            f.material_index = 2
+            for loop in f.loops:
+                p = loop.vert.co
+                loop[uvl].uv = ((p.x + p.y) * 0.5, p.z * 0.5)
+            new.append(f)
+    write_piece(ob, bm)
+    bm.free()
+    return len(new)

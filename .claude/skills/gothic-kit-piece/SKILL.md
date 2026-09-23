@@ -59,9 +59,18 @@ Interior detail lines (opening edges, timber edges) may be at 0.1 m steps --
 put them into the `xs`/`zs` grid-line lists so faces land exactly on them.
 Every piece is authored so:
 
-- **Origin = floor level, at the piece's own snap corner** (wall: bottom-left
-  front corner; road: centre of the bottom face; stairs: bottom-front centre).
-  Record the choice in the piece's custom property `kit_origin`.
+- **Origin = floor level, at the piece's own snap corner** (road: centre of
+  the bottom face; stairs: bottom-front centre). Record the choice in the
+  piece's custom property `kit_origin`. **Wall-line pieces use the INSIDE
+  face** so a whole house lands on the 1 m grid: wall bay = inside face,
+  left end; corner = inner corner; roof run / dormer / fascia = same point
+  as the bay below; roof end = where it meets the first run; chimney = wall
+  top height, ridge at y=2. Builders still work in the legacy frame (front
+  face at y=0, corner's outer corner at 0,0) -- call `kit_lib.rebase_origin(ob)`
+  as the LAST step, after anything derived from the piece
+  (`build_corner_from_bay`, `build_roof_end_gable`) has been built. The
+  offsets live in one place, `kit_lib.origin_shift()`; level scripts written
+  in the legacy frame convert with `kit_lib.legacy_placement()`.
 - **Snap faces are flat, on grid planes, and left open** (a wall bay's left
   and right edge are open boundary loops -- that is the *only* allowed open
   boundary). Neighbouring pieces must present **identical vertex spacing on
@@ -177,17 +186,60 @@ The first wall looked wonky because the textures were picked by name.
   and `keep_planes` so snap faces still mate. Keep opening wobble under
   ~0.01 m or it reads as broken, not aged.
 - **Break the light where materials change.** A stone-to-timber (or
-  timber-to-sill) joint on one continuous surface looks pasted on. Leave a
-  ~4 cm groove row between the two raised regions (a grid row that is NOT
-  raised, so it stays at the wall plane): both sides get real side walls
-  and a shadow line. Regions that need to read as one piece (jamb-to-lintel,
-  post-to-eave) stay welded with no groove.
+  timber-to-sill) joint on one continuous surface looks pasted on. Let the
+  two raised regions touch, but chamfer them separately (one `inset` call
+  per material group, not one for all caps): their two bevels meet in a
+  V crease that catches the light. The user rejected the older ~4 cm flat
+  groove row between stone footing and sole rail as an unnecessary gap.
+  Regions that need to read as one piece (jamb-to-lintel, post-to-eave)
+  stay one inset region, no crease.
+- **Storey seam = open, identical loops, chamfer groove.** No LIP row and no
+  nudge at the ground top / upper bottom: the ground eave runs to z=3, the
+  upper sole plate starts at z=0, both seam front rows sit at the eave's
+  front edge (`SEAM_D` = 0.16, unjittered) and the seam plane is OPEN like
+  the bay ends, so a stack welds into one tube (0 non-manifold). That only
+  works because every bay carries the same seam columns: tensor_partition
+  lines run a bay's full height, so each bay used to bring its own opening
+  columns up to the seam (door 1.25/1.4/2.6/2.75, window 1.38/1.5/...) and
+  different bay types could not weld. `wall_bay.SEAM_COLS` is the union of
+  the basic set's opening columns (window/twin jambs 0.10, door/ornament
+  jambs 0.15 so the union stays small). They are in every bay's line list
+  (so the plaster mirror bounds are the same everywhere) but NOT protected:
+  tensor_partition drops the ones a bay doesn't need, the back keeps the
+  mirror lines (`slab_planar(back_protect_x=PL_B[0])`, or its texture would
+  change), and the missing SEAM_COLS vertices are inserted only on the
+  FRONT open seam chain at the very end (edge_split after the UVs, then the few
+  faces that grew are triangulated + joined: 2-8 tris per bay, all on the
+  seam's chamfer strip). The BACK (interior) seam chain keeps only the
+  bay's own columns (the user's method, 2026-09-23): the back is one flat
+  plane, and every bay's back chain contains the common set {0, 0.15, 1.6,
+  3.85, 4}, so two bays with different columns meet there in straight,
+  in-line T-junctions -- no gap, nothing visible, and splitting them
+  (or `Mesh > Clean Up`) closes the seam completely. Merge by Distance
+  reports them as open edges; that is expected. Plain bay 108 -> 102
+  faces, upper plain 97 -> 85; front, UVs and silhouette are unchanged. Forcing the columns through the
+  whole bay instead cost ~380 faces for a plain bay (now 108). Columns that
+  do cross a bay without being its own (the 1.6 mirror line) are
+  pass-through: put back on the straight line between their row neighbours
+  after the jitter, or they crease beams / the footing into facets. A new
+  opening should sit on SEAM_COLS or extend it.
+  Single-storey houses: the ground top under the roof is open (hidden by
+  the overhang). The upper TOP (roof seam) keeps LIP + nudge.
+- **No chamfer along open snap ends.** A plain inset rings the x=0/4 edges
+  too, so every raised region drops 3 cm right at the joint and a corner
+  derived from that end loop sits 3 cm low: a visible crease/step at every
+  wall-to-corner seam. Use `kit_lib.inset_open_ends` (inset, then move the
+  ring's inner verts whose spoke starts on the plane onto it; the ring faces
+  left lying in the plane go with the end sheets). The end loop then carries
+  the full profile and the corner continues it flush. The corner's stone
+  also gets its own jitter on the mitre line (`build_corner_from_bay`), or
+  it reads as a flat sweep next to the hand-cut bay footing.
 - **Materials must agree with the shape.** A board-shaped, projecting sill
   or step is a *plank*: give it timber on every face (front, top, ends) and
   carry it through the wall thickness (the reveal floor under a window is
   the same wood; under a door it is the stone step). A stone-textured plank
   reads as a rendering error. Join same-material members (jambs, lintel,
-  sill) into one welded frame with no groove; grooves are for material
+  sill) into one welded frame with no crease; creases are for material
   changes only.
 - **Lean mesh.** Uniform grids are wasteful: the back of a wall is flat and
   needs almost no lines. Use `slab_lean(...)` (own coarse back grid; reveals,
@@ -345,7 +397,8 @@ sides**, and **no piece may overlap another** (overlapping timber "adds up"):
     honestly, build a surface-mounted piece instead (see `build_chimney`/
     `build_dormer`) and don't claim it reduces the open-edge count. See
     `scripts/fascia.py`'s module docstring and `TRIM_FASCIA_A` in the kit.
-17. **A derived corner's own weld-edge distance is NOT always the T you
+17. (The jetty pieces were removed from the kit on 2026-09-23; the lesson
+    stands.) **A derived corner's own weld-edge distance is NOT always the T you
     passed in -- read it back before trusting a placement offset.**
     `build_corner_from_bay` computes `T_new = y0 + T` where `y0` is the
     bay's own back-plane y (lesson 14) -- for a normal wall (back plane at
@@ -431,10 +484,10 @@ sides**, and **no piece may overlap another** (overlapping timber "adds up"):
     proportional to the number of internal shared edges, not as a
     regression to fix -- the real check for these is a screenshot at the
     join, not `check_piece`'s or `build_house`'s usual "0 overlap" bar,
-    which still applies to everything else. A true single-roof valley
-    over an L footprint (no doubled wall, one continuous roof surface)
-    remains unimplemented -- it needs the roof's own cross-section sweep
-    to miter at the inside corner, materially harder than anything above.
+    which still applies to everything else. A true valley now exists for
+    the T case (`roof_t.py`, 2026-09-23): the roof's cross-section sweep
+    mitred at the valley, which turned out to be the corner-block trick
+    again because both roofs share one profile.
 21. **`bmesh.ops.grid_fill` does not reliably cap a regular N-gon --
     verify it, don't assume it.** Tried it first for an octagon tower's
     spire tip and foot ring (an 8-edge closed boundary loop, passed as
@@ -613,12 +666,7 @@ additive/backward-compatible: omit them and a call behaves exactly as before
 (verified against all 9 pre-existing wall pieces after adding them).
 `scripts/roof_gable.py` has `build_roof_run`, `build_chimney` and the shared
 `roof_slope_uv`; `build_gable` and `build_corner_post` are superseded (integrated
-end piece, mitre corner block). `scripts/floor_tile.py` has `build_floor_tile` (`closed_x0=True` = END tile). A floor with an open end is not manifold after merging, so floors are two END tiles (one turned 180 deg) plus open tiles between; ground floor top z = 0.46 (footing top = door threshold). Anything reused turned 180 deg about z must be mirror-symmetric (see the roof run).
-`scripts/jetty.py` builds a jettied upper wall by calling `build_wall_bay`
-NORMALLY, then translating the whole finished piece -- relief, jitter and
-all -- outward as one step; no changes to `build_wall_bay` itself needed.
-Its corner uses `build_corner_from_bay` the usual way (see lesson 14 above
-for why that function had to generalize first).
+end piece, mitre corner block). `scripts/floor_tile.py` has `build_floor_tile` (`closed_x0=True` = END tile). A floor with an open end is not manifold after merging, so floors are two END tiles (one turned 180 deg) plus open tiles between. The ground floor is `add_ground_base()` on a built tile (`FLOOR_GROUND_A` / `FLOOR_GROUND_END_A`): the tile lifted by FOOT (0.46, planks on the door threshold) with origin on the ground, plus a stone skirt island under its closed sides whose bottom row sits on the wall's inside-face bottom row (z=0.006, x=0/0.15/3.85/4) so a joined house merges them -- a separate island on purpose, and after the merge that bottom edge has 3 faces (hidden, accepted). Anything reused turned 180 deg about z must be mirror-symmetric (see the roof run).
 `scripts/ruin_wall.py` builds a broken wall bay by treating each zone's
 missing-material region as an "opening" that runs off the top of the
 domain, reusing `slab_planar`'s own front/back/reveal/side machinery rather
@@ -678,6 +726,9 @@ NW_VILLAGE_01 (the project's own reference asset) directly via the
 Blender MCP -- its own layout (buildings scattered at varied angles
 around a central well, not a grid), material list, and building shapes,
 not guessed at.
+`scripts/basic_set.py` holds the build spec + seed of every basic ground piece (`KIT_WALL_*_A` + `CORNER_A`/`CORNER_SOLO_A`) and `rebuild_basic_ground()`, which rebuilds them in place (legacy frame, corners derived, rebased) with their current materials -- run it after any change to `wall_bay.py`/`weld_pieces.py`. Other families were never recorded; recover a spec the same way (rebuild candidates, match the shipped mesh vertex for vertex) before rebuilding them.
+`scripts/gable_end.py` has `build_gable_end` (`KIT_ROOF_END_GABLE_A`, 2026-09-23; supersedes `weld_pieces.build_roof_end_gable`): only the roof slab overhangs (roofline + a flat verge underside at zu(y)); the gable face sits in the wall's outer plane as a timber frame at `POST_D` (0.12) -- corner posts 0..0.55 (= corner block + wall end post below) and the rafter band -- around a recessed plaster panel; each corner post wraps onto the long side (x T..L) so the corner block carries on to the eave, its top edge meeting the run's soffit station at y=-POST_D (`build_roof_run` carries that station now); cap and bottom are triangulated + joined n-gons (13 tris, all on the flat cap / hidden bottom). The old sweep put the whole profile, knee zone included, 0.3 m past the wall as a block down to the wall top. The gable WELDS to the walls under it (same recipe as the storey seam): every storey top is an open seam with SEAM_COLS (upper top too, no LIP, no nudge), corners are open tubes (no nudge, no cap), and `build_gable_end(bay_ob=, corner_ob=)` derives its open bottom from `wall_top_loop()` -- the actual end bay + two corners placed under it: the walls' front chain meets a flat timber ledge (the eave top in front of the frame, built as one n-gon per side and re-filled -- a zipper made a zero-area tri at the post/panel step), the back chain (the walls' common columns only) is the bottom of the attic back face, which is laid out like the user's hand edit: a centre column at the ridge line (y = W/2) with a row at each course station's rafter height, quads fanning from the stations to that column, and one row of quads down to the wall chain (199 -> 185 faces). Ground and upper tops give the identical loop, so one gable fits one- and two-storey houses. The attic back face is its own island until welded (check_piece components_bad 1, expected). Open edges left in a merged house: the ground line, and the wall-to-run flush touch under the runs (hidden by the overhang). `boundary_loop` joins the two chains of an end that is open top AND bottom (upper bay) at matching z, so the joints are exactly the lid edges `build_corner_from_bay` skips.
+`scripts/roof_t.py` has `build_roof_t` (`KIT_ROOF_T_A`): the roof run's end loop swept along x for 12 m of main roof and along y for a 4 m wing, with each valley their mitre -- the same idea as `build_corner_from_bay`, concave. It works because both roofs share pitch, eave height and course spacing, so profile points with the same distance s from their ridges meet on the 45 deg valley; a profile vertex at s has its mitre at (2 -/+ s, 2.4 + s) in the legacy frame. The run's ridge-top edge straddles the ridge (no vertex at y=2.4), so the main ridge top gets stations at 2 -/+ 0.3 where the wing's ridge top attaches; 3 hidden triangles at the attic apex. Build it FROM the rebased kit run, then `rebase_origin`. `build_roof_l` (`KIT_ROOF_L_A`, same file) is the one-mitre version: each profile point (y_p, z) meets itself at x = 4.4 - y_p, y = y_p (exactly where a run turned 90 deg puts it), so no ridge special case and all quads.
 `scripts/weld_pieces.py` has `boundary_loop`, `build_corner_from_bay`,
 `build_roof_end_gable`. Assembly contract (user table in
 `documentation/KIT_USER_GUIDE.md` section 7): 3 m ground floor, 0.6 m knee,
@@ -753,6 +804,23 @@ long axis (that streaks).
 7. **Big structures** -- arched gate/bridge, tower base + top, stone wall
    with battlements, harbour pier bay + mooring post, ruin chunks
    (broken walls, fallen beams).
+
+## Second family: Maya (flat roof, stone + plaster)
+
+`scripts/maya_bay.py` -- same contract, different style. Worth copying for a
+new family: (1) every bay carries the SAME rows (`MROWS`: window, door and
+keystone rows included), so all end loops match; (2) the storey band is split
+across the open seam (2.85-3.0 below, 0-0.10 above), both halves at `BAND_D`,
+and `MSEAM_COLS` (union of every standard opening's columns + spout + frieze
+ends) is inserted on the front seam chain only; (3) a new opening type reuses
+existing rows/columns wherever possible (the niche = a window's grid, recessed
+instead of opened; the arch = spring-row verts moved onto the intrados, the
+row above onto the extrados); (4) round a computed column to the 1 mm grid
+`lines_from` uses, or vertex lookups silently miss; (5) a slab that meets a
+wall's open seam must stay OFF the seam plane (floors at 2.98, roof at 3.12),
+or its edge becomes a third face on the seam chain; (6) an opening on the slab
+edge (door at z=0) is zipped twice by `slab_planar` -- `_stitch` now skips a
+face that already exists, and the door's ground-plane threshold is deleted.
 
 ## Workflow (via MCP)
 
@@ -833,9 +901,9 @@ kit file itself, all images report `packed_file`.
 
 ## Naming, collections, metadata
 
-- Object + mesh: `NW_KIT_<FAMILY>_<PIECE>_<VAR>` all caps, e.g.
-  `NW_KIT_WALL_DOOR_A`, `NW_KIT_ROOF_HIP_B`, `NW_KIT_ROAD_CORNER_A`,
-  `NW_KIT_FENCE_GATE_RUIN`. Use `OW_KIT_...` for Old World palettes.
+- Object + mesh: `KIT_<FAMILY>_<PIECE>_<VAR>` all caps, e.g.
+  `KIT_WALL_DOOR_A`, `KIT_ROOF_HIP_B`, `KIT_ROAD_CORNER_A`,
+  `KIT_FENCE_GATE_RUIN`. Use `OW_KIT_...` for Old World palettes.
 - Collections: `KIT_<FAMILY>` for masters (visible), `KIT_EXPORT_ZEN` for the
   hidden triangulated copies.
 - Custom props on the master: `kit_origin`, `kit_snap`, `kit_bbox_cells`,
@@ -896,7 +964,7 @@ cover it; a real one looks visibly stretched at normal viewing distance.
 ```python
 import bpy, bmesh
 exec(open("/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/.claude/skills/gothic-kit-piece/scripts/kit_lib.py").read())
-ob = new_piece("NW_KIT_WALL_DOOR_A", bpy.data.collections["KIT_WALL"])
+ob = new_piece("KIT_WALL_DOOR_A", bpy.data.collections["KIT_WALL"])
 xs = lines_from([0, 4], [0.4, 3.6], [1.4, 2.6])
 zs = lines_from([0, 3], [0, 2.2], [2.6])
 solid = mask_with_openings(xs, zs, [(1.4, 2.6, 0, 2.2)])

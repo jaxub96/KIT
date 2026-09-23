@@ -21,9 +21,9 @@ level = bpy.data.collections.new("LEVEL"); bpy.context.scene.collection.children
 zenc = bpy.data.collections.new("LEVEL_EXPORT_ZEN"); bpy.context.scene.collection.children.link(zenc)
 
 # ---------------------------------------------------------------- house ----------
-PIECES = ["NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A", "NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_CORNER_A",
-          "NW_KIT_WALL_UPPER_WINDOW_A", "NW_KIT_WALL_CORNER_UPPER_A", "NW_KIT_ROOF_RUN_A",
-          "NW_KIT_ROOF_END_GABLE_A", "NW_KIT_CHIMNEY_A", "NW_KIT_FLOOR_END_A"]
+PIECES = ["KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A", "KIT_WALL_PLAIN_A", "KIT_WALL_CORNER_A",
+          "KIT_WALL_UPPER_WINDOW_A", "KIT_WALL_CORNER_UPPER_A", "KIT_ROOF_RUN_A",
+          "KIT_ROOF_END_GABLE_A", "KIT_CHIMNEY_A", "KIT_FLOOR_END_A", "KIT_FLOOR_GROUND_END_A"]
 with bpy.data.libraries.load(KIT, link=False) as (src, dst):
     dst.objects = PIECES
 P = {o.name: o for o in dst.objects}
@@ -37,16 +37,16 @@ def storey(z, S, N, E, W_, corner):
                        (E, M(8.8, 0.4, z, 90)), (W_, M(0, 4.4, z, 270))])
     for (x, y, r) in ((0, 0, 0), (8.8, 0, 90), (8.8, D, 180), (0, D, 270)):
         placements.append((corner, M(x, y, z, r)))
-storey(0, ("NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A"), ("NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_WINDOW_A"),
-       "NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_WINDOW_A", "NW_KIT_WALL_CORNER_A")
-U = "NW_KIT_WALL_UPPER_WINDOW_A"
-storey(3, (U, U), (U, U), U, U, "NW_KIT_WALL_CORNER_UPPER_A")
-for z in (0.46, 3.0):
-    placements += [("NW_KIT_FLOOR_END_A", M(0.4, 0.4, z, 0)), ("NW_KIT_FLOOR_END_A", M(8.4, 4.4, z, 180))]
+storey(0, ("KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A"), ("KIT_WALL_PLAIN_A", "KIT_WALL_WINDOW_A"),
+       "KIT_WALL_PLAIN_A", "KIT_WALL_WINDOW_A", "KIT_WALL_CORNER_A")
+U = "KIT_WALL_UPPER_WINDOW_A"
+storey(3, (U, U), (U, U), U, U, "KIT_WALL_CORNER_UPPER_A")
+for fl, z in (("KIT_FLOOR_GROUND_END_A", 0.0), ("KIT_FLOOR_END_A", 3.0)):
+    placements += [(fl, M(0.4, 0.4, z, 0)), (fl, M(8.4, 4.4, z, 180))]
 ZR = 6
-placements += [("NW_KIT_ROOF_RUN_A", M(0.4, 0, ZR, 0)), ("NW_KIT_ROOF_RUN_A", M(4.4, 0, ZR, 0)),
-               ("NW_KIT_ROOF_END_GABLE_A", M(-0.3, 0, ZR, 0)), ("NW_KIT_ROOF_END_GABLE_A", M(9.1, D, ZR, 180)),
-               ("NW_KIT_CHIMNEY_A", M(6.4, 2.4, ZR + 2.695, 0))]
+placements += [("KIT_ROOF_RUN_A", M(0.4, 0, ZR, 0)), ("KIT_ROOF_RUN_A", M(4.4, 0, ZR, 0)),
+               ("KIT_ROOF_END_GABLE_A", M(-0.3, 0, ZR, 0)), ("KIT_ROOF_END_GABLE_A", M(9.1, D, ZR, 180)),
+               ("KIT_CHIMNEY_A", M(6.4, 2.4, ZR + 2.695, 0))]
 house_mats, bm = [], bmesh.new()
 for name, mat in placements:
     ob = P[name]
@@ -55,7 +55,7 @@ for name, mat in placements:
              for m in ob.data.materials]
     for p in me.polygons:
         p.material_index = slots[p.material_index]
-    me.transform(mat)
+    me.transform(legacy_placement(ob.name, mat))
     bm.from_mesh(me)
     bpy.data.meshes.remove(me)
 bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=0.001)        # weld every seam of the kit

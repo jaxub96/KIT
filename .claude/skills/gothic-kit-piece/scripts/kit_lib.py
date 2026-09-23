@@ -15,7 +15,7 @@ import bpy
 import bmesh
 import math
 import os
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 # --- grid constants (see SKILL.md "Module grid") ------------------------------
 # 1 Blender unit = 1 metre in the reference village file. Verified from vob
@@ -194,8 +194,8 @@ def _stitch(bm, F, B, key):
         for v in vs:
             if v not in uniq:
                 uniq.append(v)
-        if len(uniq) >= 3:
-            faces.append(bm.faces.new(uniq))
+        if len(uniq) >= 3 and bm.faces.get(uniq) is None:   # an opening on the slab edge
+            faces.append(bm.faces.new(uniq))                # (door at z=0) zips the same quad twice
     i = j = 0
     while i < len(F) - 1 or j < len(B) - 1:
         fa = F[i + 1].co[key] if i < len(F) - 1 else 1e9
@@ -341,7 +341,7 @@ def tensor_partition(bm, xs, zs, rid, y, protect_x=(), protect_z=()):
 
 
 def slab_planar(bm, xs, zs, rid_front, openings, protect_x, protect_z, thickness=WALL_T, y0=0.0,
-                split_x=()):
+                split_x=(), back_protect_x=(), back_protect_z=()):
     """Wall slab, all-quad on every visible surface. Front from `rid_front`
     (None = void); the BACK is one flat region with the same voids and a coarser
     grid (only opening edges, the end columns and the rows the openings' reveals
@@ -361,8 +361,8 @@ def slab_planar(bm, xs, zs, rid_front, openings, protect_x, protect_z, thickness
     need = [p for p in FV if on_open_edge(p)]          # front verts on opening edges
     col = lambda i: sum((xs[i] + xs[i + 1]) / 2 > sx for sx in split_x)
     rid_back = [[None if rid_front[i][k] is None else ("back", col(i)) for k in range(nz)] for i in range(nx)]
-    bx = list(protect_x) + [p[0] for p in need]
-    bz = list(protect_z) + [p[1] for p in need]
+    bx = list(protect_x) + [p[0] for p in need] + list(back_protect_x)   # + e.g. texture mirror lines
+    bz = list(protect_z) + [p[1] for p in need] + list(back_protect_z)
     backf, BV, _, _ = tensor_partition(bm, xs, zs, rid_back, y0 + thickness, protect_x=bx, protect_z=bz)
     out = dict(front=frontf, back=[f for f, _ in backf], side=[], reveal=[])
     fverts, bverts = list(FV.values()), list(BV.values())
@@ -445,6 +445,36 @@ def inset(bm, faces, thickness, depth=0.0):
     ret = bmesh.ops.inset_region(bm, faces=list(faces), thickness=thickness, depth=depth,
                                  use_even_offset=True)
     return ret["faces"]
+
+
+def inset_open_ends(bm, faces, thickness, depth, planes):
+    """inset() whose chamfer ring does not run along open snap planes
+    (`planes` = [(axis, value)]). A plain inset rings those edges too, so every
+    raised region drops `depth` right at the joint and whatever is derived
+    from that end loop (a corner block) sits lower than the piece's own
+    surface -- a visible crease at every seam. Here the ring is made as usual,
+    then every inner vertex whose spoke comes from a vertex ON a plane is
+    moved onto that plane: the ring faces along the plane end up lying IN it
+    (delete them with the piece's end sheets), and the end loop carries the
+    region's full profile, top/bottom chamfers included. Needs the end sheets
+    still in place during the inset (an open edge makes inset_region slide
+    its inner vertex along the edge instead of offsetting it)."""
+    faces = [f for f in faces if f.is_valid]
+    ring = inset(bm, faces, thickness, depth)
+    inner = {v for f in faces for v in f.verts}
+    on = lambda v: [(ax, val) for ax, val in planes if abs(v.co[ax] - val) < 1e-4]
+    moves = {}                                # decide first, move after: a moved
+    for f in ring:                            # vertex must not drag its neighbours
+        for e in f.edges:
+            a, b = e.verts
+            for o, i in ((a, b), (b, a)):
+                if o not in inner and i in inner and not on(i):
+                    for ax, val in on(o):
+                        moves.setdefault(i, []).append((ax, val))
+    for i, mv in moves.items():
+        for ax, val in mv:
+            i.co[ax] = val
+    return ring
 
 
 def jitter(bm, verts, amount, seed=0, keep_planes=(), period_x=None, share_y=False):
@@ -621,7 +651,7 @@ def set_directional_uv(face, uv_layer, origin, dir_u, dir_v, tile_u, tile_v):
 
 def new_piece(name, collection=None):
     """Empty mesh object ready to be filled from a bmesh. Naming: see SKILL.md
-    (NW_KIT_<FAMILY>_<PIECE>_<VAR>)."""
+    (KIT_<FAMILY>_<PIECE>_<VAR>)."""
     me = bpy.data.meshes.new(name)
     ob = bpy.data.objects.new(name, me)
     (collection or bpy.context.scene.collection).objects.link(ob)
@@ -637,6 +667,49 @@ def write_piece(ob, bm):
     ob.data.update()
     for p in ob.data.polygons:
         p.use_smooth = False
+
+
+# --- origin convention (grid snap) ----------------------------------------------
+# Builders work in the LEGACY frame: a wall bay's origin on its outer (front)
+# face, a corner's on its outer corner. With 0.4 m walls that puts every
+# footprint at 0.4 + 4n + 0.4 -- never on the 1 m grid. The shipped kit uses
+# the INSIDE face instead: wall bay origin = inside face, left end; corner
+# origin = inner corner; the room is 4n x 4 m and every piece of a house
+# snaps on whole metres (corner + the wall starting there share one point).
+# Build in the legacy frame, then call rebase_origin(ob) as the LAST step --
+# after anything that derives from the piece (build_corner_from_bay reads a
+# bay, build_roof_end_gable reads a run) has been built from it.
+
+def origin_shift(name):
+    """Legacy-frame point that becomes the piece's origin (None = unchanged)."""
+    if name.startswith("KIT_MAYA_"):                   # Maya family: 0.3 m walls (maya_bay.MT)
+        if "_DECK" in name or "_FLOOR" in name:        # room tiles: origin = inner room corner already
+            return None
+        return (0.3, 0.3, 0.0) if "_CORNER" in name else (0.0, 0.3, 0.0)
+    if name.startswith("KIT_WALL_"):
+        return (WALL_T, WALL_T, 0.0) if "_CORNER" in name else (0.0, WALL_T, 0.0)
+    if name.startswith("KIT_ROOF_") and name.endswith("END_GABLE_A"):
+        return (0.7, WALL_T, 0.0)                      # where it meets the first run
+    if name.startswith(("KIT_ROOF_", "KIT_TRIM_FASCIA")):  # runs, dormer (built in its
+        return (0.0, WALL_T, 0.0)                      # run's frame), fascia: same point as the bay below
+    if name.startswith("KIT_CHIMNEY"):
+        return (0.0, 0.0, -2.695)                      # at wall-top height, ridge y=2
+    return None
+
+
+def rebase_origin(ob):
+    """Move ob's mesh so its origin follows the grid-snap convention above."""
+    s = origin_shift(ob.name)
+    if s:
+        ob.data.transform(Matrix.Translation(-Vector(s)))
+    return s
+
+
+def legacy_placement(name, mat):
+    """World matrix for a placement written in the legacy frame (the level
+    build scripts): the same geometry, with the rebased piece."""
+    s = origin_shift(name)
+    return mat @ Matrix.Translation(Vector(s)) if s else mat
 
 
 def make_export_copy(ob, hidden_collection):

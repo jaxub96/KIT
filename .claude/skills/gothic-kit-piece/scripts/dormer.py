@@ -20,7 +20,7 @@ SURF = 0.08          # roof run's shingle-surface offset above zu(y) (course thi
 def build_dormer(ob, mats, zen_coll=None, seed=71, x0=1.4, y_lo=0.7, W=4.8):
     """A small shed-roofed, single-window dormer. Place at world
     (roof_run_x + x0_local... ) i.e. directly on top of an already-placed
-    NW_KIT_ROOF_RUN_A -- same x,y,z origin as the run (it reads the run's
+    KIT_ROOF_RUN_A -- same x,y,z origin as the run (it reads the run's
     own slope via the same KNEE/TAN/W the run uses, so it sits flush)."""
     if bpy.context.object and bpy.context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')

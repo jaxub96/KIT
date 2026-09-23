@@ -17,11 +17,11 @@ level = bpy.data.collections.new("LEVEL"); bpy.context.scene.collection.children
 zenc = bpy.data.collections.new("LEVEL_EXPORT_ZEN"); bpy.context.scene.collection.children.link(zenc)
 
 # ---------------------------------------------------------------- append ----------
-HOUSE_PIECES = ["NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A", "NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_PLAIN_LIGHT_A",
-                "NW_KIT_WALL_WINDOW_TWIN_A", "NW_KIT_WALL_UPPER_PLAIN_A",
-                "NW_KIT_WALL_CORNER_A", "NW_KIT_WALL_UPPER_WINDOW_A", "NW_KIT_WALL_CORNER_UPPER_A",
-                "NW_KIT_ROOF_RUN_A", "NW_KIT_ROOF_END_GABLE_A", "NW_KIT_CHIMNEY_A", "NW_KIT_FLOOR_END_A"]
-GROUND_PIECES = ["NW_KIT_TERRAIN_FLAT_A", "NW_KIT_TERRAIN_YARD_A", "NW_KIT_ROAD_STRAIGHT_A", "NW_KIT_ROAD_JUNCTION_A"]
+HOUSE_PIECES = ["KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A", "KIT_WALL_PLAIN_A", "KIT_WALL_PLAIN_LIGHT_A",
+                "KIT_WALL_WINDOW_TWIN_A", "KIT_WALL_UPPER_PLAIN_A",
+                "KIT_WALL_CORNER_A", "KIT_WALL_UPPER_WINDOW_A", "KIT_WALL_CORNER_UPPER_A",
+                "KIT_ROOF_RUN_A", "KIT_ROOF_END_GABLE_A", "KIT_CHIMNEY_A", "KIT_FLOOR_END_A", "KIT_FLOOR_GROUND_END_A"]
+GROUND_PIECES = ["KIT_TERRAIN_FLAT_A", "KIT_TERRAIN_YARD_A", "KIT_ROAD_STRAIGHT_A", "KIT_ROAD_JUNCTION_A"]
 PIECES = HOUSE_PIECES + GROUND_PIECES
 with bpy.data.libraries.load(KIT, link=False) as (src, dst):
     dst.objects = PIECES
@@ -36,13 +36,13 @@ def M(x, y, z, rot):
 def house_placements(x0, y0, S, N, E, W_, corner, US=None, UN=None, UE=None, UW_=None, chimney_x=6.4):
     """S/N/E/W_ = (piece_A, piece_B) or a single name for both bays of that
     wall; corner = the ground corner piece name (upper corner is always
-    NW_KIT_WALL_CORNER_UPPER_A, only one variant exists). US/UN/UE/UW_ are
-    the matching upper-storey walls (default NW_KIT_WALL_UPPER_WINDOW_A
+    KIT_WALL_CORNER_UPPER_A, only one variant exists). US/UN/UE/UW_ are
+    the matching upper-storey walls (default KIT_WALL_UPPER_WINDOW_A
     everywhere, same as before, if left out)."""
     def pair(v):
         return (v, v) if isinstance(v, str) else v
     S, N = pair(S), pair(N)
-    U = "NW_KIT_WALL_UPPER_WINDOW_A"
+    U = "KIT_WALL_UPPER_WINDOW_A"
     US, UN = pair(US or (U, U)), pair(UN or (U, U))
     UE, UW_ = UE or U, UW_ or U
     placements = []
@@ -54,15 +54,15 @@ def house_placements(x0, y0, S, N, E, W_, corner, US=None, UN=None, UE=None, UW_
         for (x, y, r) in ((x0, y0, 0), (x0 + 8.8, y0, 90), (x0 + 8.8, y0 + D, 180), (x0, y0 + D, 270)):
             placements.append((corn, M(x, y, z, r)))
     storey(0, S, N, E, W_, corner)
-    storey(3, US, UN, UE, UW_, "NW_KIT_WALL_CORNER_UPPER_A")
-    for z in (0.46, 3.0):
-        placements += [("NW_KIT_FLOOR_END_A", M(x0 + 0.4, y0 + 0.4, z, 0)),
-                       ("NW_KIT_FLOOR_END_A", M(x0 + 8.4, y0 + 4.4, z, 180))]
+    storey(3, US, UN, UE, UW_, "KIT_WALL_CORNER_UPPER_A")
+    for fl, z in (("KIT_FLOOR_GROUND_END_A", 0.0), ("KIT_FLOOR_END_A", 3.0)):
+        placements += [(fl, M(x0 + 0.4, y0 + 0.4, z, 0)),
+                       (fl, M(x0 + 8.4, y0 + 4.4, z, 180))]
     ZR = 6
-    placements += [("NW_KIT_ROOF_RUN_A", M(x0 + 0.4, y0, ZR, 0)), ("NW_KIT_ROOF_RUN_A", M(x0 + 4.4, y0, ZR, 0)),
-                   ("NW_KIT_ROOF_END_GABLE_A", M(x0 - 0.3, y0, ZR, 0)),
-                   ("NW_KIT_ROOF_END_GABLE_A", M(x0 + 9.1, y0 + D, ZR, 180)),
-                   ("NW_KIT_CHIMNEY_A", M(x0 + chimney_x, y0 + 2.4, ZR + 2.695, 0))]
+    placements += [("KIT_ROOF_RUN_A", M(x0 + 0.4, y0, ZR, 0)), ("KIT_ROOF_RUN_A", M(x0 + 4.4, y0, ZR, 0)),
+                   ("KIT_ROOF_END_GABLE_A", M(x0 - 0.3, y0, ZR, 0)),
+                   ("KIT_ROOF_END_GABLE_A", M(x0 + 9.1, y0 + D, ZR, 180)),
+                   ("KIT_CHIMNEY_A", M(x0 + chimney_x, y0 + 2.4, ZR + 2.695, 0))]
     return placements
 
 
@@ -75,7 +75,7 @@ def build_house(name, x0, y0, S, N, E, W_, corner, US=None, UN=None, UE=None, UW
                  for m in ob.data.materials]
         for p in me.polygons:
             p.material_index = slots[p.material_index]
-        me.transform(mat)
+        me.transform(legacy_placement(ob.name, mat))
         bm.from_mesh(me)
         bpy.data.meshes.remove(me)
     bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=0.001)
@@ -100,24 +100,24 @@ def build_house(name, x0, y0, S, N, E, W_, corner, US=None, UN=None, UE=None, UW
 # House A: fully-framed, symmetric window rhythm, windows on every upper
 # bay, chimney centred on the ridge.
 houseA, ovA = build_house("NW_HOUSE_A", 0.0, 0.0,
-                          S=("NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A"),
-                          N=("NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_WINDOW_A"),
-                          E="NW_KIT_WALL_PLAIN_A", W_="NW_KIT_WALL_WINDOW_A",
-                          corner="NW_KIT_WALL_CORNER_A")
+                          S=("KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A"),
+                          N=("KIT_WALL_PLAIN_A", "KIT_WALL_WINDOW_A"),
+                          E="KIT_WALL_PLAIN_A", W_="KIT_WALL_WINDOW_A",
+                          corner="KIT_WALL_CORNER_A")
 # House B: deliberately different massing, not just a palette swap --
 # twin-light windows instead of single ones, light (no mid rail) framing on
-# the plain sides, BLANK upper storey on three sides (NW_KIT_WALL_UPPER_PLAIN_A,
+# the plain sides, BLANK upper storey on three sides (KIT_WALL_UPPER_PLAIN_A,
 # so it doesn't repeat house A's all-windows upper floor), and the chimney
 # at the gable end instead of the ridge centre.
 X0_B = 16.0
 houseB, ovB = build_house("NW_HOUSE_B", X0_B, 0.0,
-                          S=("NW_KIT_WALL_WINDOW_TWIN_A", "NW_KIT_WALL_DOOR_A"),
-                          N=("NW_KIT_WALL_PLAIN_LIGHT_A", "NW_KIT_WALL_PLAIN_LIGHT_A"),
-                          E="NW_KIT_WALL_PLAIN_LIGHT_A", W_="NW_KIT_WALL_WINDOW_TWIN_A",
-                          corner="NW_KIT_WALL_CORNER_A",
-                          US=("NW_KIT_WALL_UPPER_WINDOW_A", "NW_KIT_WALL_UPPER_PLAIN_A"),
-                          UN="NW_KIT_WALL_UPPER_PLAIN_A",
-                          UE="NW_KIT_WALL_UPPER_PLAIN_A", UW_="NW_KIT_WALL_UPPER_PLAIN_A",
+                          S=("KIT_WALL_WINDOW_TWIN_A", "KIT_WALL_DOOR_A"),
+                          N=("KIT_WALL_PLAIN_LIGHT_A", "KIT_WALL_PLAIN_LIGHT_A"),
+                          E="KIT_WALL_PLAIN_LIGHT_A", W_="KIT_WALL_WINDOW_TWIN_A",
+                          corner="KIT_WALL_CORNER_A",
+                          US=("KIT_WALL_UPPER_WINDOW_A", "KIT_WALL_UPPER_PLAIN_A"),
+                          UN="KIT_WALL_UPPER_PLAIN_A",
+                          UE="KIT_WALL_UPPER_PLAIN_A", UW_="KIT_WALL_UPPER_PLAIN_A",
                           chimney_x=1.4)
 
 # ---------------------------------------------------------------- ground ----------
@@ -144,8 +144,8 @@ for i in range(-1, 8):
 grid[(0, -1)] = (JUNC, 0)
 grid[(4, -1)] = (JUNC, 0)
 
-PIECE_OF = {FLAT: "NW_KIT_TERRAIN_FLAT_A", YARD: "NW_KIT_TERRAIN_YARD_A",
-            ROAD: "NW_KIT_ROAD_STRAIGHT_A", JUNC: "NW_KIT_ROAD_JUNCTION_A"}
+PIECE_OF = {FLAT: "KIT_TERRAIN_FLAT_A", YARD: "KIT_TERRAIN_YARD_A",
+            ROAD: "KIT_ROAD_STRAIGHT_A", JUNC: "KIT_ROAD_JUNCTION_A"}
 
 
 def GM(i, j, rot):

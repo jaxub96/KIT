@@ -13,6 +13,8 @@ KNEE = 0.60
 APEX = KNEE + 2.0 * TAN            # underside height at the ridge, 2.16 m
 COURSE_DY = 0.50                               # y spacing of shingle courses (slope length = COURSE_DY / COS)
 GABLE_RAF = 0.28                               # rafter row height
+POST_D = 0.12        # gable-end corner post / frame depth in front of the wall plane; the run's
+                     # soffit carries a station there so the post's top edge welds into it
 
 
 def roof_slope_uv(y, z, W=4.8, N=5, OVER=0.40):
@@ -209,8 +211,8 @@ def build_roof_run(ob, mats, zen_coll=None, seed=9, courses=5, W=4.8):
     # the closed end cap bridges 1:1 (quads) instead of fans.
     yo = -OVER
     zt = lambda y: zu(y) + FASCIA
-    pts = [(0.0, 0.0, None), (0.0, KNEE, None), (yo, zu(yo), None)]
-    ek = ["plaster", "timber", "timber"]                    # skirt front, soffit, fascia
+    pts = [(0.0, 0.0, None), (0.0, KNEE, None), (-POST_D, zu(-POST_D), None), (yo, zu(yo), None)]
+    ek = ["plaster", "timber", "timber", "timber"]          # skirt front, soffit (2 parts), fascia
     ys = [yo + k * COURSE_DY for k in range(N + 1)]
     for k in range(N):
         pts.append((ys[k], zt(ys[k]) + H, None))            # course tip (thick edge)
