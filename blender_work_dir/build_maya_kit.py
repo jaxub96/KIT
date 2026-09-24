@@ -8,7 +8,7 @@ OUTBLEND="/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/
 import os; SCR=os.path.join(os.path.dirname(os.path.abspath(__file__)), "maya_renders") + "/"; os.makedirs(SCR, exist_ok=True)
 ARGS=sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
 g={'__name__':'kit'}
-for f in ("kit_lib.py","weld_pieces.py","maya_bay.py"): exec(open(S+f).read(), g)
+for f in ("kit_lib.py","weld_pieces.py","maya_bay.py","stair.py"): exec(open(S+f).read(), g)
 for o in list(bpy.data.objects): bpy.data.objects.remove(o)
 col=bpy.data.collections.new("MAYA"); bpy.context.scene.collection.children.link(col)
 mats=g['maya_mats']()
@@ -22,6 +22,8 @@ for n,kw in g['MAYA_PARAPETS'].items():
 for n,up in (("KIT_MAYA_FLOOR_GROUND_A",False),("KIT_MAYA_FLOOR_UPPER_A",True)):
     P[n]=new(n); out[n]=g['build_maya_floor'](P[n], mats, upper=up)
 P["KIT_MAYA_STEP_A"]=new("KIT_MAYA_STEP_A"); out["KIT_MAYA_STEP_A"]=g['build_maya_step'](P["KIT_MAYA_STEP_A"], mats)
+P["KIT_MAYA_FLOOR_UPPER_STAIRWELL_A"]=new("KIT_MAYA_FLOOR_UPPER_STAIRWELL_A"); out["KIT_MAYA_FLOOR_UPPER_STAIRWELL_A"]=g['build_maya_floor_stairwell'](P["KIT_MAYA_FLOOR_UPPER_STAIRWELL_A"], mats)
+P["KIT_MAYA_STAIR_A"]=new("KIT_MAYA_STAIR_A"); out["KIT_MAYA_STAIR_A"]=g['build_maya_stair'](P["KIT_MAYA_STAIR_A"], mats)
 for n,(src,cap) in g['MAYA_CORNERS'].items():
     P[n]=new(n); out[n]=g['maya_corner'](P[n], P[src], mats, cap_top=cap)
 P["KIT_MAYA_ROOF_DECK_A"]=new("KIT_MAYA_ROOF_DECK_A"); out["KIT_MAYA_ROOF_DECK_A"]=g['build_maya_deck'](P["KIT_MAYA_ROOF_DECK_A"], mats)
@@ -54,8 +56,13 @@ wt={'house+floors':weld(gr+up+pa+dk+fl),'floors_only':weld(fl[:4]),'ground':weld
 hc=bpy.data.collections.new("TEST_HOUSE"); bpy.context.scene.collection.children.link(hc)
 for n,Mx in gr+up+pa+dk+fl:
     o=bpy.data.objects.new(n+"_h",P[n].data); hc.objects.link(o); o.matrix_world=Matrix.Translation((0,20,0))@Mx
+# asset catalogs: Maya/{WALLS,FLOORS,ROOFS,STRUCTS} in kit/blender_assets.cats.txt (mirrors Kit/*)
+MAYA_CATS={"WALLS":"3081a433-c6c5-4d0f-8b51-03c4f9f29e52","FLOORS":"0970c342-c8aa-4c0f-a15d-1c5761ccf0a3",
+    "ROOFS":"e3c8fec1-3d14-4174-afbb-c8c696eee9ac","STRUCTS":"fafaf0a5-8407-4291-b497-038794104d2a"}
 for n,ob in P.items():
     ob.asset_mark()
+    ob.asset_data.catalog_id=MAYA_CATS["WALLS" if "_WALL_" in n else "FLOORS" if "_FLOOR_" in n
+        else "ROOFS" if ("_PARAPET_" in n or "_ROOF_" in n) else "STRUCTS"]
     ob.asset_data.use_preferred_import_method=True; ob.asset_data.preferred_import_method='APPEND'
     ob.asset_data.description={"FLOOR":"4x4 m room floor tile, origin = inner room corner; open sides weld to neighbours",
         "DECK":"flat roof slab of the top storey (place with the top storey's matrix): flagstones on top, beamed ceiling below",

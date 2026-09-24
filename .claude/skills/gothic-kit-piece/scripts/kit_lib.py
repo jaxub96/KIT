@@ -683,7 +683,7 @@ def write_piece(ob, bm):
 def origin_shift(name):
     """Legacy-frame point that becomes the piece's origin (None = unchanged)."""
     if name.startswith("KIT_MAYA_"):                   # Maya family: 0.3 m walls (maya_bay.MT)
-        if "_DECK" in name or "_FLOOR" in name:        # room tiles: origin = inner room corner already
+        if "_DECK" in name or "_FLOOR" in name or "_STAIR" in name:   # room tiles + stair: inner room corner already
             return None
         return (0.3, 0.3, 0.0) if "_CORNER" in name else (0.0, 0.3, 0.0)
     if name.startswith("KIT_WALL_"):

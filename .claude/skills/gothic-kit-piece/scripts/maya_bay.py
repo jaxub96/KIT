@@ -500,6 +500,86 @@ def build_maya_floor(ob, mats, upper=False, ztop=2.98, top="planks"):
     return check_piece(ob, snap_planes=[(0, 0.0), (0, 4.0), (1, 0.0), (1, 4.0)], flat_tri_ok=True)
 
 
+MAYA_STAIRWELL = (0.5, 3.5, 3.0, 4.0)     # x0, x1, y0, y1: 1 m wide, against the y=4 wall
+
+
+def build_maya_floor_stairwell(ob, mats, hole=MAYA_STAIRWELL, ztop=2.98):
+    """KIT_MAYA_FLOOR_UPPER_A with a stairwell opening for KIT_MAYA_STAIR_A
+    (stair.py). Same open edges, joists and materials; the opening's three
+    sides are closed plank-to-ceiling rims, the joist crossing it ends there.
+    The plank top carries the ceiling's joist lines only where the rims need
+    them, so its edges meet a plain upper tile in flat, in-line T-junctions."""
+    hx0, hx1, hy0, hy1 = hole
+    zbot, jd = ztop - 0.20, 0.18
+    jys = [0.0]
+    for yc in (0.5, 1.5, 2.5, 3.5):
+        jys += [yc - 0.08, yc + 0.08]
+    jys.append(4.0)
+    ys_c = sorted(set(jys) | {hy0, hy1})
+    ys_t = sorted({0.0, 4.0} | {y for y in ys_c if hy0 <= y <= hy1})
+    xs = [0.0, hx0, hx1, 4.0]
+    inhole = lambda x, y: hx0 < x < hx1 and hy0 < y < hy1
+    bm = bmesh.new()
+    VT, VC = {}, {}
+
+    def vt(x, y):
+        if (x, y) not in VT:
+            VT[(x, y)] = bm.verts.new((x, y, ztop))
+        return VT[(x, y)]
+
+    def vc(x, y):
+        if (x, y) not in VC:
+            VC[(x, y)] = bm.verts.new((x, y, zbot))
+        return VC[(x, y)]
+    kinds = {}
+    for a, b in zip(xs, xs[1:]):
+        for c, d in zip(ys_t, ys_t[1:]):
+            if not inhole((a + b) / 2, (c + d) / 2):
+                kinds[bm.faces.new((vt(a, c), vt(b, c), vt(b, d), vt(a, d)))] = "planks"
+        for c, d in zip(ys_c, ys_c[1:]):
+            if not inhole((a + b) / 2, (c + d) / 2):
+                kinds[bm.faces.new((vc(a, c), vc(a, d), vc(b, d), vc(b, c)))] = "ceiling"
+    # rims of the opening (plank top -> ceiling), before the joists are grown
+    rim_edges = [((hx0, hy0), (hx1, hy0))]
+    for xv in (hx0, hx1):
+        rim_edges += [((xv, c), (xv, d)) for c, d in zip(ys_t, ys_t[1:]) if hy0 <= c and d <= hy1]
+    for p, q in rim_edges:
+        kinds[bm.faces.new((vt(*p), vt(*q), vc(*q), vc(*p)))] = "ceiling"
+    bm.normal_update()
+    joist = [f for f, k in kinds.items() if k == "ceiling" and abs(f.normal.z) > 0.9
+             and any(abs(f.calc_center_median().y - yc) < 0.01 for yc in (0.5, 1.5, 2.5, 3.5))]
+    caps, sides = extrude_faces(bm, joist, jd, along=Vector((0, 0, -1)), with_sides=True)
+    for f in caps + sides:
+        kinds[f] = "beam"
+    endcaps = [f for f in bm.faces if all(abs(v.co.x) < 1e-4 for v in f.verts) or all(abs(v.co.x - 4) < 1e-4 for v in f.verts)]
+    bmesh.ops.delete(bm, geom=endcaps, context='FACES_ONLY')
+    bmesh.ops.delete(bm, geom=[e for e in bm.edges if not e.link_faces], context='EDGES')
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    top = [f for f, k in kinds.items() if f.is_valid and k == "planks"]
+    if sum(f.normal.z for f in top) < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    bm.normal_update()
+    ob.data.materials.clear()
+    slots = ("planks", "ceiling", "beam")
+    for k in slots:
+        ob.data.materials.append(mats[k])
+    uvl = bm.loops.layers.uv.get("Float2") or bm.loops.layers.uv.new("Float2")
+    for f in bm.faces:
+        k = kinds.get(f, "beam")
+        f.material_index = slots.index(k)
+        if k == "planks":
+            _uv_axis(f, uvl, 0, 0.5, 0.5)
+        elif k == "ceiling" and abs(f.normal.z) < 0.5:          # opening rim: plank ends
+            _uv_axis(f, uvl, 0 if abs(f.normal.y) > 0.5 else 1, 0.5, 0.5)
+        elif k == "ceiling":
+            _uv_axis(f, uvl, 1, 0.5, 0.5)
+        else:
+            _uv_axis(f, uvl, 0, 0.5, 2.0)
+    write_piece(ob, bm)
+    bm.free()
+    return check_piece(ob, snap_planes=[(0, 0.0), (0, 4.0), (1, 0.0), (1, 4.0)], flat_tri_ok=True)
+
+
 def build_maya_step(ob, mats):
     """Stone step in front of a door bay: a closed block, placed with the door
     bay's own matrix (legacy frame: in front of the wall, x 1.15..2.85)."""

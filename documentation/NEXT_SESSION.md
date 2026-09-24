@@ -79,6 +79,23 @@ Last updated 2026-09-23.
   plinth crease, seam strip). Next: inner corner (L/U plans), 2 m filler bay,
   plaster/plinth retextured variants, then 3-5 example houses.
 
+- **Stairs (2026-09-24)**: `scripts/stair.py` -- `KIT_STAIR_A` (timber, 70 faces) and
+  `KIT_MAYA_STAIR_A` (solid masonry, 59), plus stairwell floor tiles
+  (`KIT_FLOOR_STAIRWELL_A`/`_END_A` via `floor_tile.build_floor_tile(hole=)`,
+  `KIT_MAYA_FLOOR_UPPER_STAIRWELL_A` via `maya_bay.build_maya_floor_stairwell`).
+  Stair and stairwell share the room-corner origin; 1 m flight along the y=4
+  wall. Added to the libraries with `blender_work_dir/add_stair_pieces.py`
+  (additive, doesn't rebuild anything else). Every riser but the first rakes
+  back 3 cm so the sides are single quad strips.
+- **Town scene (2026-09-24)**: `blender_work_dir/build_town.py` ->
+  `NW_KIT_TOWN.blend` (run WITHOUT --factory-startup: needs the Blend-Zen
+  add-on for zCVobLight). Geometry Nodes terrain / roads / plant scatter, 10
+  buildings from both kits as collection instances (townhall, shop, temple,
+  storage + 6 houses) + watchtower, Gothic props as zCVob objects, 31
+  zCVobLights, sun + sky. Layout lives in its CONFIG block. Blender 5.2 note:
+  GN modifier inputs are `mod.properties.inputs.<Socket_N>.value`, not
+  `mod["Socket_N"]`.
+
 ## Known traps (read before touching shared code)
 
 - `section_placements` (`build_showcase_level.py`) is the base every

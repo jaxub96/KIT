@@ -11,8 +11,10 @@ Python, or any add-on** -- the kit is a normal Blender Asset Library.
    `Gothic Kit`.
 
 Open an **Asset Browser** editor and choose `Gothic Kit`. Pieces are sorted
-in catalogs: `Kit/Walls`, `Roofs`, `Trim`, `Interior`, `Streets`,
-`Furniture`, `Structures`. Search by tag (`door`, `timber`, `4m bay`...).
+in catalogs: `Kit/` (Gothic, `KIT_WALLS.blend`) and `Maya/` (flat-roof
+family, `KIT_MAYA.blend`), each split into `WALLS`, `FLOORS`, `ROOFS`,
+`STRUCTS` (Gothic also has `GROUND`); materials are in `MATS`. Search by
+tag (`door`, `timber`, `4m bay`...).
 
 ## 2. Place pieces
 
@@ -200,6 +202,10 @@ All in `KIT_WALLS.blend` (roof/chimney in `KIT_ROOF`, ground/road in `KIT_STREET
 | `KIT_FLOOR_END_A` | same tile with its x=0 side closed by a rim: use at both ends of a floor (157) |
 | `KIT_FLOOR_GROUND_A` | ground-floor version of `FLOOR_A`: same planks and joists lifted onto a low stone base -- origin on the ground, plank tops at 0.46 (the door threshold) (114) |
 | `KIT_FLOOR_GROUND_END_A` | ground-floor version of `FLOOR_END_A`, same stone base (166) |
+| `KIT_STAIR_A` | timber stair, ground floor (0.46) to upper floor (3.0): 10 risers, 1 m wide against the back wall (y 3..4), climbing +x. Origin = inner room corner on the ground, same point as the room's ground floor tile (70) |
+| `KIT_FLOOR_STAIRWELL_A` / `_END_A` | `FLOOR_A` / `FLOOR_END_A` with the stairwell for `KIT_STAIR_A` (x 0.58..3.42, y 2.99..4, framed by a header beam); same snap loops, use it in their place at z = 3 (248 / 298) |
+| `KIT_MAYA_STAIR_A` | Maya: solid plastered stair with ashlar treads, 0.05 to 2.98, 11 risers, same layout and origin as `KIT_STAIR_A` (59) |
+| `KIT_MAYA_FLOOR_UPPER_STAIRWELL_A` | Maya: `FLOOR_UPPER_A` with the stairwell for `KIT_MAYA_STAIR_A` (x 0.5..3.5, y 3..4); place both at the same room corner (67) |
 | `KIT_TERRAIN_FLAT_A` | 4 x 4 m flat grass ground tile, open on all four sides (16) |
 | `KIT_TERRAIN_YARD_A` | 4 x 4 m flat bare/trodden dooryard tile, same weld contract (16) |
 | `KIT_ROAD_STRAIGHT_A` | 4 x 4 m gravel road segment, 2 m wide, runs north-south with grass shoulders; rotate 90 for east-west (16) |
