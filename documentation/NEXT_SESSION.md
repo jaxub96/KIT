@@ -87,14 +87,10 @@ Last updated 2026-09-23.
   wall. Added to the libraries with `blender_work_dir/add_stair_pieces.py`
   (additive, doesn't rebuild anything else). Every riser but the first rakes
   back 3 cm so the sides are single quad strips.
-- **Town scene (2026-09-24)**: `blender_work_dir/build_town.py` ->
-  `NW_KIT_TOWN.blend` (run WITHOUT --factory-startup: needs the Blend-Zen
-  add-on for zCVobLight). Geometry Nodes terrain / roads / plant scatter, 10
-  buildings from both kits as collection instances (townhall, shop, temple,
-  storage + 6 houses) + watchtower, Gothic props as zCVob objects, 31
-  zCVobLights, sun + sky. Layout lives in its CONFIG block. Blender 5.2 note:
-  GN modifier inputs are `mod.properties.inputs.<Socket_N>.value`, not
-  `mod["Socket_N"]`.
+- **Level-building guide (2026-09-26)**: lives outside this repo, in
+  `Creativity/Blender Projects/Guides/Gothic_Level_Guide/` (guide, Level Utils
+  add-on, house library, vegetation node tree, sample island). The earlier
+  procedural town builder was removed.
 
 ## Known traps (read before touching shared code)
 

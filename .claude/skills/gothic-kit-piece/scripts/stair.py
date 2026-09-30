@@ -13,7 +13,7 @@
 # balusters, no nosing boxes. Every riser except the first leans back by RAKE,
 # so the profile's points all have different x and each side is one strip of
 # vertical-edged quads down to the soffit (or the floor): quads only, no
-# poles, no n-gons. Faces on the floor are left out (open, like KIT_MAYA_STEP_A).
+# poles, no n-gons. The underside is closed as well, so the piece has no open edges.
 import bpy, bmesh, math, random
 from mathutils import Vector
 
@@ -21,9 +21,14 @@ RAKE = 0.03          # riser lean (top edge set back), also a visual nosing
 STAIR_Y = (3.0, 4.0)  # 1 m wide flight against the back wall
 
 
+TOP_LEDGE = 0.01      # the last riser stops this far in front of the floor edge
+
+
 def stair_profile(z0, z1, n, x_top, going):
     """Top profile points (x, z, kind) in +x order: n risers of equal height
-    from z0 to z1, n-1 treads, the n-th riser being the floor edge at x_top.
+    from z0 to z1 and n-1 treads. The last riser climbs all the way to the floor
+    level z1 just in front of the floor edge at x_top (so no gap shows under a
+    thin floor slab), then a 1 cm ledge meets the edge.
     kind tags the face that STARTS at that point ('riser' / 'tread')."""
     h = (z1 - z0) / n
     x0 = x_top - (n - 1) * going
@@ -31,7 +36,9 @@ def stair_profile(z0, z1, n, x_top, going):
     for i in range(1, n - 1):
         pts.append((x0 + i * going, z0 + i * h, "riser"))    # tread end = riser bottom
         pts.append((x0 + i * going + RAKE, z0 + (i + 1) * h, "tread"))
-    pts.append((x_top, z0 + (n - 1) * h, None))              # top tread ends at the floor edge
+    pts.append((x_top - 2 * TOP_LEDGE, z0 + (n - 1) * h, "riser"))   # last tread ends here
+    pts.append((x_top - TOP_LEDGE, z1, "tread"))                     # last riser, up to the floor
+    pts.append((x_top, z1, None))                                     # 1 cm ledge against the floor edge
     return x0, h, pts
 
 
@@ -54,7 +61,7 @@ def build_stair(ob, mats, z0, z1, n, x_top, going, soffit=None, y=STAIR_Y, seed=
     top, bot = {}, {}
     for k, (x, z, _) in enumerate(pts):
         for yy in (Y0, Y1):
-            dz = 0.0 if k in (0, len(pts) - 1) else (rnd.random() * 2 - 1) * wear
+            dz = 0.0 if k in (0, len(pts) - 2, len(pts) - 1) else (rnd.random() * 2 - 1) * wear   # floor-level points stay exact
             top[(k, yy)] = bm.verts.new((x, yy, z + dz))
             bot[(k, yy)] = bm.verts.new((x, yy, zb(x)))
     foot = {yy: bm.verts.new((x0, yy, z0)) for yy in (Y0, Y1)}   # A0: bottom of riser 0
@@ -73,7 +80,7 @@ def build_stair(ob, mats, z0, z1, n, x_top, going, soffit=None, y=STAIR_Y, seed=
             b0 = foot[yy] if k == 0 else bot[(k, yy)]
             q = (b0, bot[(k + 1, yy)], top[(k + 1, yy)], top[(k, yy)])
             face(q[::-1] if flip else q, "side", k)
-        if soffit is not None and zb(pts[k + 1][0]) > z0 + 1e-6:
+        if soffit is None or zb(pts[k + 1][0]) > z0 + 1e-6 or zb(pts[k][0]) <= z0 + 1e-6:   # underside: closed everywhere
             b0y0 = foot[Y0] if k == 0 else bot[(k, Y0)]
             b0y1 = foot[Y1] if k == 0 else bot[(k, Y1)]
             face((b0y0, bot[(k + 1, Y0)], bot[(k + 1, Y1)], b0y1), "soffit", k)

@@ -249,3 +249,49 @@ def add_ground_base(ob, stone_mat):
     write_piece(ob, bm)
     bm.free()
     return len(new)
+
+
+# ---- simple floors (2026-09-30): closed low-poly slabs replacing the plank tiles ------
+SLAB = 0.20           # upper floor slab thickness (top of the floor at z = 0)
+
+
+def build_floor_slab(ob, top_mat, side_mat, z_top=0.0, z_bot=-SLAB, hole=None, uv_size=2.0):
+    """A closed box 4 x 4 m: top z_top, bottom z_bot, no open or non-manifold edges.
+    hole=(x0, x1, y0, 4.0) cuts a stairwell notch against the y=4 side (see STAIRWELL);
+    the top is then 3 quads around it, otherwise 1. Material slot 0 = top and bottom
+    (planks), slot 1 = the sides. UVs: planks along x on top/bottom, wrap on the sides."""
+    bm = bmesh.new()
+    if hole:
+        x0, x1, y0, _ = hole
+        outline = [(0, 0), (4, 0), (4, 4), (x1, 4), (x1, y0), (x0, y0), (x0, 4), (0, 4)]
+        quads = [(0, 1, 4, 5), (0, 5, 6, 7), (1, 2, 3, 4)]          # front strip, left, right
+    else:
+        outline = [(0, 0), (4, 0), (4, 4), (0, 4)]
+        quads = [(0, 1, 2, 3)]
+    top = [bm.verts.new((x, y, z_top)) for x, y in outline]
+    bot = [bm.verts.new((x, y, z_bot)) for x, y in outline]
+    faces = []
+    for q in quads:
+        faces.append((bm.faces.new([top[i] for i in q]), 0))
+        faces.append((bm.faces.new([bot[i] for i in reversed(q)]), 0))
+    n = len(outline)
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append((bm.faces.new((bot[i], bot[j], top[j], top[i])), 1))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    ob.data.materials.clear()
+    ob.data.materials.append(top_mat)
+    ob.data.materials.append(side_mat)
+    uvl = bm.loops.layers.uv.get("Float2") or bm.loops.layers.uv.new("Float2")
+    for f, mi in faces:
+        f.material_index = mi
+        if mi == 0:
+            for l in f.loops:
+                l[uvl].uv = (l.vert.co.x / uv_size, l.vert.co.y)       # 4 boards per metre, like the old tile
+        else:
+            set_wrap_uv(f, uvl, (0.5, 0.5))
+    for uv in [l for l in ob.data.uv_layers if l.name != "Float2"]:
+        ob.data.uv_layers.remove(uv)
+    write_piece(ob, bm)
+    bm.free()
+    return check_piece(ob, snap_planes=[])
