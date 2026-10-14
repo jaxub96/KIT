@@ -1,16 +1,20 @@
-# Asset Catalog Definition file for Blender.
+# This is an Asset Catalog Definition file for Blender.
 #
 # Empty lines and lines starting with `#` will be ignored.
 # The first non-ignored line should be the version indicator.
-# Other lines are of the format "UUID:catalog tree path:simple catalog name"
+# Other lines are of the format "UUID:catalog/path/for/assets:simple catalog name"
 
 VERSION 1
 
 028d75ec-2cab-4734-8b87-d2f82a88c1aa:Kit:Kit
-3bc920fb-3690-47d9-93bb-93041a16a9ff:Kit/Walls:Kit-Walls
-b13441f0-d314-4057-84fd-3990aafa151b:Kit/Roofs:Kit-Roofs
-c15a11d7-334d-4760-9369-756aa4adf059:Kit/Trim:Kit-Trim
-45b4d690-e938-4fb0-902c-8c1044cbe921:Kit/Interior:Kit-Interior
-61ca03f7-12b4-40a5-96a9-51bf3ba6f48d:Kit/Streets:Kit-Streets
-5ea179c4-199c-4f7f-9f18-1c59c1e8a865:Kit/Furniture:Kit-Furniture
-c9ec0d1e-978c-4254-bd6e-425c0c08de57:Kit/Structures:Kit-Structures
+45b4d690-e938-4fb0-902c-8c1044cbe921:Kit/FLOORS:Kit-FLOORS
+61ca03f7-12b4-40a5-96a9-51bf3ba6f48d:Kit/GROUND:Kit-GROUND
+b13441f0-d314-4057-84fd-3990aafa151b:Kit/ROOFS:Kit-ROOFS
+c9ec0d1e-978c-4254-bd6e-425c0c08de57:Kit/STRUCTS:Kit-STRUCTS
+3bc920fb-3690-47d9-93bb-93041a16a9ff:Kit/WALLS:Kit-WALLS
+b81b8962-568d-481f-b263-631673c7d019:Maya:Maya
+0970c342-c8aa-4c0f-a15d-1c5761ccf0a3:Maya/FLOORS:Maya-FLOORS
+e3c8fec1-3d14-4174-afbb-c8c696eee9ac:Maya/ROOFS:Maya-ROOFS
+fafaf0a5-8407-4291-b497-038794104d2a:Maya/STRUCTS:Maya-STRUCTS
+3081a433-c6c5-4d0f-8b51-03c4f9f29e52:Maya/WALLS:Maya-WALLS
+eb2af038-faa4-471a-a688-4e9b2306081c:MATS:MATS

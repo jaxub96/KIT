@@ -25,7 +25,7 @@ def build_window_shutter_bay(ob, x0, x1, mats, zen_coll=None, seed=15, storey="g
     """Ground or upper window bay with a carved-ornament jamb (replacing the
     plain timber trim). `mats` needs an "ornament" key in addition to the
     usual plaster/timber/stone."""
-    spec = dict(openings=[dict(kind="window", x0=x0, x1=x1, trim="ornament")],
+    spec = dict(openings=[dict(kind="window", x0=x0, x1=x1, trim="ornament", jamb=DOOR_JAMB)],
                 extra_kinds=("ornament",))
     if storey == "upper":
         spec["storey"] = "upper"

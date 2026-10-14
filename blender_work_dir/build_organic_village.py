@@ -31,17 +31,17 @@ village_coll = bpy.data.collections.new("VILLAGE"); bpy.context.scene.collection
 zenc = bpy.data.collections.new("VILLAGE_EXPORT_ZEN"); bpy.context.scene.collection.children.link(zenc)
 
 ALL_PIECES = [
-    "NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A", "NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_PLAIN_LIGHT_A",
-    "NW_KIT_WALL_CORNER_A", "NW_KIT_WALL_CORNER_SOLO_A",
-    "NW_KIT_WALL_UPPER_WINDOW_A", "NW_KIT_WALL_UPPER_PLAIN_A", "NW_KIT_WALL_CORNER_UPPER_A",
-    "NW_KIT_WALL_BURGHER_DOOR_A", "NW_KIT_WALL_BURGHER_WINDOW_A", "NW_KIT_WALL_BURGHER_PLAIN_A",
-    "NW_KIT_WALL_BURGHER_CORNER_A", "NW_KIT_WALL_BURGHER_UPPER_WINDOW_A", "NW_KIT_WALL_BURGHER_UPPER_PLAIN_A",
-    "NW_KIT_WALL_BURGHER_CORNER_UPPER_A",
-    "NW_KIT_WALL_FARM_DOOR_A", "NW_KIT_WALL_FARM_WINDOW_A", "NW_KIT_WALL_FARM_PLAIN_A", "NW_KIT_WALL_FARM_CORNER_A",
-    "NW_KIT_WALL_RH1_DOOR_A", "NW_KIT_WALL_RH1_WINDOW_A", "NW_KIT_WALL_RH1_PLAIN_A", "NW_KIT_WALL_RH1_CORNER_A",
-    "NW_KIT_WALL_RH1_UPPER_WINDOW_A", "NW_KIT_WALL_RH1_UPPER_PLAIN_A", "NW_KIT_WALL_RH1_CORNER_UPPER_A",
-    "NW_KIT_ROOF_RUN_A", "NW_KIT_ROOF_END_GABLE_A", "NW_KIT_ROOF_THATCH_RUN_A", "NW_KIT_ROOF_THATCH_END_GABLE_A",
-    "NW_KIT_CHIMNEY_A", "NW_KIT_ROUND_TOWER_A", "NW_KIT_WELL_A", "NW_KIT_SIGN_POST_A",
+    "KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A", "KIT_WALL_PLAIN_A", "KIT_WALL_PLAIN_LIGHT_A",
+    "KIT_WALL_CORNER_A", "KIT_WALL_CORNER_SOLO_A",
+    "KIT_WALL_UPPER_WINDOW_A", "KIT_WALL_UPPER_PLAIN_A", "KIT_WALL_CORNER_UPPER_A",
+    "KIT_WALL_BURGHER_DOOR_A", "KIT_WALL_BURGHER_WINDOW_A", "KIT_WALL_BURGHER_PLAIN_A",
+    "KIT_WALL_BURGHER_CORNER_A", "KIT_WALL_BURGHER_UPPER_WINDOW_A", "KIT_WALL_BURGHER_UPPER_PLAIN_A",
+    "KIT_WALL_BURGHER_CORNER_UPPER_A",
+    "KIT_WALL_FARM_DOOR_A", "KIT_WALL_FARM_WINDOW_A", "KIT_WALL_FARM_PLAIN_A", "KIT_WALL_FARM_CORNER_A",
+    "KIT_WALL_RH1_DOOR_A", "KIT_WALL_RH1_WINDOW_A", "KIT_WALL_RH1_PLAIN_A", "KIT_WALL_RH1_CORNER_A",
+    "KIT_WALL_RH1_UPPER_WINDOW_A", "KIT_WALL_RH1_UPPER_PLAIN_A", "KIT_WALL_RH1_CORNER_UPPER_A",
+    "KIT_ROOF_RUN_A", "KIT_ROOF_END_GABLE_A", "KIT_ROOF_THATCH_RUN_A", "KIT_ROOF_THATCH_END_GABLE_A",
+    "KIT_CHIMNEY_A", "KIT_ROUND_TOWER_A", "KIT_WELL_A", "KIT_SIGN_POST_A",
 ]
 with bpy.data.libraries.load(KIT, link=False) as (src, dst):
     dst.objects = ALL_PIECES
@@ -59,7 +59,7 @@ def M(x, y, z, rot):
 def section_placements(x0, y0, rot, S, N, E, W_, corner, n_bays=2, upper=False,
                        US=None, UN=None, UE=None, UW_=None, upper_corner=None,
                        chimney_x=2.4, extra=(), off=0.4, upper_off=0.4,
-                       roof_run="NW_KIT_ROOF_RUN_A", roof_gable="NW_KIT_ROOF_END_GABLE_A"):
+                       roof_run="KIT_ROOF_RUN_A", roof_gable="KIT_ROOF_END_GABLE_A"):
     def pair(v, n):
         return [v] * n if isinstance(v, str) else list(v)
     S, N = pair(S, n_bays), pair(N, n_bays)
@@ -77,7 +77,7 @@ def section_placements(x0, y0, rot, S, N, E, W_, corner, n_bays=2, upper=False,
             local.append((corn, M(x, y, z, r)))
     storey(0, S, N, E, W_, corner, off)
     if upper:
-        U = "NW_KIT_WALL_UPPER_WINDOW_A"
+        U = "KIT_WALL_UPPER_WINDOW_A"
         storey(3, pair(US or U, n_bays), pair(UN or U, n_bays), UE or U, UW_ or U, upper_corner, upper_off)
     ZR = 6 if upper else 3
     span_y = 2 * off + 4.0
@@ -86,14 +86,14 @@ def section_placements(x0, y0, rot, S, N, E, W_, corner, n_bays=2, upper=False,
     local.append((roof_gable, M(off - 0.7, 0, ZR, 0)))
     local.append((roof_gable, M(off + n_bays * 4.0 + 0.7, span_y, ZR, 180)))
     if chimney_x is not None:
-        local.append(("NW_KIT_CHIMNEY_A", M(chimney_x, off + 2.0, ZR + 2.695, 0)))
+        local.append(("KIT_CHIMNEY_A", M(chimney_x, off + 2.0, ZR + 2.695, 0)))
     local += list(extra)
     outer = M(x0, y0, 0, rot)
     return [(nm, outer @ mat) for (nm, mat) in local]
 
 
 def small_house_placements(x0, y0, rot, S, N, E, W_, corner, chimney_x=2.4,
-                           roof_run="NW_KIT_ROOF_RUN_A", roof_gable="NW_KIT_ROOF_END_GABLE_A"):
+                           roof_run="KIT_ROOF_RUN_A", roof_gable="KIT_ROOF_END_GABLE_A"):
     off = 0.4
     span = 2 * off + 4.0
     local = [
@@ -106,7 +106,7 @@ def small_house_placements(x0, y0, rot, S, N, E, W_, corner, chimney_x=2.4,
     local += [(roof_run, M(off, 0, ZR, 0)),
              (roof_gable, M(off - 0.7, 0, ZR, 0)),
              (roof_gable, M(off + 4.7, span, ZR, 180)),
-             ("NW_KIT_CHIMNEY_A", M(chimney_x, off + 2.0, ZR + 2.695, 0))]
+             ("KIT_CHIMNEY_A", M(chimney_x, off + 2.0, ZR + 2.695, 0))]
     outer = M(x0, y0, 0, rot)
     return [(nm, outer @ mat) for (nm, mat) in local]
 
@@ -120,7 +120,7 @@ def build_merged(name, placements, collection):
                  for m in ob.data.materials]
         for p in me.polygons:
             p.material_index = slots[p.material_index]
-        me.transform(mat)
+        me.transform(legacy_placement(ob.name, mat))
         bm.from_mesh(me)
         bpy.data.meshes.remove(me)
     bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=0.001)
@@ -153,60 +153,60 @@ houses = {}
 
 houses["BURGHER"], ovBu = build_merged("NW_HOUSE_BURGHER", section_placements(
     7.5, 4.0, 18, n_bays=2, upper=True,
-    S=("NW_KIT_WALL_BURGHER_DOOR_A", "NW_KIT_WALL_BURGHER_WINDOW_A"),
-    N=("NW_KIT_WALL_BURGHER_PLAIN_A", "NW_KIT_WALL_BURGHER_WINDOW_A"),
-    E="NW_KIT_WALL_BURGHER_WINDOW_A", W_="NW_KIT_WALL_BURGHER_PLAIN_A",
-    corner="NW_KIT_WALL_BURGHER_CORNER_A",
-    UE="NW_KIT_WALL_BURGHER_UPPER_WINDOW_A", UW_="NW_KIT_WALL_BURGHER_UPPER_WINDOW_A",
-    UN=("NW_KIT_WALL_BURGHER_UPPER_WINDOW_A", "NW_KIT_WALL_BURGHER_UPPER_WINDOW_A"),
-    upper_corner="NW_KIT_WALL_BURGHER_CORNER_UPPER_A", chimney_x=1.6,
+    S=("KIT_WALL_BURGHER_DOOR_A", "KIT_WALL_BURGHER_WINDOW_A"),
+    N=("KIT_WALL_BURGHER_PLAIN_A", "KIT_WALL_BURGHER_WINDOW_A"),
+    E="KIT_WALL_BURGHER_WINDOW_A", W_="KIT_WALL_BURGHER_PLAIN_A",
+    corner="KIT_WALL_BURGHER_CORNER_A",
+    UE="KIT_WALL_BURGHER_UPPER_WINDOW_A", UW_="KIT_WALL_BURGHER_UPPER_WINDOW_A",
+    UN=("KIT_WALL_BURGHER_UPPER_WINDOW_A", "KIT_WALL_BURGHER_UPPER_WINDOW_A"),
+    upper_corner="KIT_WALL_BURGHER_CORNER_UPPER_A", chimney_x=1.6,
 ), village_coll)
 
 houses["FARM"], ovFa = build_merged("NW_HOUSE_FARM", small_house_placements(
     -3.0, 8.5, -30,
-    S="NW_KIT_WALL_FARM_DOOR_A", N="NW_KIT_WALL_FARM_PLAIN_A",
-    E="NW_KIT_WALL_FARM_WINDOW_A", W_="NW_KIT_WALL_FARM_PLAIN_A",
-    corner="NW_KIT_WALL_CORNER_SOLO_A", chimney_x=2.2,
-    roof_run="NW_KIT_ROOF_THATCH_RUN_A", roof_gable="NW_KIT_ROOF_THATCH_END_GABLE_A",
+    S="KIT_WALL_FARM_DOOR_A", N="KIT_WALL_FARM_PLAIN_A",
+    E="KIT_WALL_FARM_WINDOW_A", W_="KIT_WALL_FARM_PLAIN_A",
+    corner="KIT_WALL_CORNER_SOLO_A", chimney_x=2.2,
+    roof_run="KIT_ROOF_THATCH_RUN_A", roof_gable="KIT_ROOF_THATCH_END_GABLE_A",
 ), village_coll)
 
 houses["ROW"], ovRow = build_merged("NW_HOUSES_ROW", (
     small_house_placements(8.0, -6.5, 105,
-        S="NW_KIT_WALL_RH1_PLAIN_A", N="NW_KIT_WALL_RH1_PLAIN_A",
-        E="NW_KIT_WALL_RH1_DOOR_A", W_="NW_KIT_WALL_RH1_PLAIN_A",
-        corner="NW_KIT_WALL_CORNER_SOLO_A", chimney_x=2.4) +
+        S="KIT_WALL_RH1_PLAIN_A", N="KIT_WALL_RH1_PLAIN_A",
+        E="KIT_WALL_RH1_DOOR_A", W_="KIT_WALL_RH1_PLAIN_A",
+        corner="KIT_WALL_CORNER_SOLO_A", chimney_x=2.4) +
     [(nm, M(8.0, -6.5, 0, 105) @ Matrix.Translation((4.8, 0, 0)) @ mat)
      for (nm, mat) in small_house_placements(0, 0, 0,
-        S="NW_KIT_WALL_RH1_PLAIN_A", N="NW_KIT_WALL_RH1_PLAIN_A",
-        E="NW_KIT_WALL_RH1_WINDOW_A", W_="NW_KIT_WALL_RH1_PLAIN_A",
-        corner="NW_KIT_WALL_CORNER_SOLO_A", chimney_x=1.8)]
+        S="KIT_WALL_RH1_PLAIN_A", N="KIT_WALL_RH1_PLAIN_A",
+        E="KIT_WALL_RH1_WINDOW_A", W_="KIT_WALL_RH1_PLAIN_A",
+        corner="KIT_WALL_CORNER_SOLO_A", chimney_x=1.8)]
 ), village_coll)
 
 houses["COTTAGE"], ovCo = build_merged("NW_HOUSE_COTTAGE", small_house_placements(
     -9.0, -4.0, 210,
-    S="NW_KIT_WALL_WINDOW_A", N="NW_KIT_WALL_PLAIN_LIGHT_A",
-    E="NW_KIT_WALL_PLAIN_LIGHT_A", W_="NW_KIT_WALL_DOOR_A",
-    corner="NW_KIT_WALL_CORNER_SOLO_A", chimney_x=1.6,
+    S="KIT_WALL_WINDOW_A", N="KIT_WALL_PLAIN_LIGHT_A",
+    E="KIT_WALL_PLAIN_LIGHT_A", W_="KIT_WALL_DOOR_A",
+    corner="KIT_WALL_CORNER_SOLO_A", chimney_x=1.6,
 ), village_coll)
 
 houses["STANDARD"], ovSt = build_merged("NW_HOUSE_STANDARD", section_placements(
     2.0, -11.0, 340, n_bays=2, upper=True,
-    S=("NW_KIT_WALL_DOOR_A", "NW_KIT_WALL_WINDOW_A"), N=("NW_KIT_WALL_PLAIN_A", "NW_KIT_WALL_WINDOW_A"),
-    E="NW_KIT_WALL_PLAIN_A", W_="NW_KIT_WALL_WINDOW_A", corner="NW_KIT_WALL_CORNER_A",
-    upper_corner="NW_KIT_WALL_CORNER_UPPER_A", chimney_x=6.4,
-    extra=[("NW_KIT_SIGN_POST_A", M(0.4, 0, 0, 0) @ M(1.4, -0.55, 0, 0))],
+    S=("KIT_WALL_DOOR_A", "KIT_WALL_WINDOW_A"), N=("KIT_WALL_PLAIN_A", "KIT_WALL_WINDOW_A"),
+    E="KIT_WALL_PLAIN_A", W_="KIT_WALL_WINDOW_A", corner="KIT_WALL_CORNER_A",
+    upper_corner="KIT_WALL_CORNER_UPPER_A", chimney_x=6.4,
+    extra=[("KIT_SIGN_POST_A", M(0.4, 0, 0, 0) @ M(1.4, -0.55, 0, 0))],
 ), village_coll)
 
 # freestanding pieces: the well at the clearing's own centre, the tower on
 # its edge like a real watchtower overlooking the approach
-tower_src = P["NW_KIT_ROUND_TOWER_A"]
+tower_src = P["KIT_ROUND_TOWER_A"]
 tower_me = tower_src.data.copy(); tower_me.transform(M(-2.0, -9.5, 0, 0))
 tower_ob = bpy.data.objects.new("NW_WATCHTOWER", tower_me)
 for m in tower_src.data.materials:
     tower_me.materials.append(m)
 village_coll.objects.link(tower_ob)
 
-well_src = P["NW_KIT_WELL_A"]
+well_src = P["KIT_WELL_A"]
 well_me = well_src.data.copy(); well_me.transform(M(0, 0, 0, 0))
 well_ob = bpy.data.objects.new("NW_VILLAGE_WELL", well_me)
 for m in well_src.data.materials:
