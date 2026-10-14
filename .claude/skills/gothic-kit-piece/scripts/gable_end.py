@@ -34,6 +34,19 @@ def wall_top_loop(bay_ob, corner_ob, L=GABLE_L, T=GABLE_T, W=4.8):
     place = [(bay_ob, sh @ Matrix.Translation((0, 4, -3)) @ Matrix.Rotation(math.radians(270), 4, 'Z')),
              (corner_ob, sh @ Matrix.Translation((0, 0, -3))),
              (corner_ob, sh @ Matrix.Translation((0, 4, -3)) @ Matrix.Rotation(math.radians(270), 4, 'Z'))]
+    return _wall_loop(place, L, W)
+
+
+def wall_loop_from_scene(gable_ob, wall_obs, L=GABLE_L, W=4.8):
+    """wall_top_loop() for walls already placed in a scene under a placed (rebased)
+    gable end -- any width, any number of bays (e.g. two 4 m bays under an 8.8 m
+    gable). wall_obs: the end-wall bays and the two corner blocks under it."""
+    from mathutils import Matrix
+    to_legacy = (gable_ob.matrix_world @ Matrix.Translation(-Vector(origin_shift("KIT_ROOF_END_GABLE_A")))).inverted()
+    return _wall_loop([(o, to_legacy @ o.matrix_world) for o in wall_obs], L, W)
+
+
+def _wall_loop(place, L, W):
     key = lambda co: (round(co.x, 4), round(co.y, 4))
     adj = {}
     for ob_, mx in place:
@@ -59,8 +72,12 @@ def wall_top_loop(bay_ob, corner_ob, L=GABLE_L, T=GABLE_T, W=4.8):
     return front, back
 
 
-def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8, L=GABLE_L, T=GABLE_T, P=POST_W, D=None):
-    """bay_ob / corner_ob: the (rebased) wall bay and corner the gable sits on.
+def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8, L=GABLE_L, T=GABLE_T, P=POST_W, D=None,
+                    wall_loops=None, extra_posts=(), rail=None):
+    """bay_ob / corner_ob: the (rebased) wall bay and corner the gable sits on
+    (or wall_loops = wall_loop_from_scene(...) for walls placed in a scene).
+    extra_posts: more frame posts [(y0, y1), ...] (a wide gable: king post, studs);
+    rail = (z0, z1, y0, y1): a horizontal rail between posts, flush with them.
     Given, the gable's bottom is left open along exactly their top edges (a
     ledge strip covers the eave top in front of the frame) so a house merges
     into one shell; without them it gets a closed bottom face (old behaviour)."""
@@ -110,7 +127,7 @@ def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8
     # ---- stations -----------------------------------------------------------------
     notch_st = sorted({pts[i][0] for i in range(n) if 0.4 - 1e-4 <= pts[i][0] <= W - 0.4 + 1e-4
                        and abs(pts[i][1] - zu(pts[i][0])) < 1e-3})
-    C = sorted({round(c, 5) for c in [-D, 0.0, P, W - P, W, W + D] + notch_st})   # frame columns
+    C = sorted({round(c, 5) for c in [-D, 0.0, P, W - P, W, W + D] + notch_st + [y for ab in extra_posts for y in ab]})   # frame columns
     SU = sorted(set(C) | {-0.4, W + 0.4})                                         # underside stations
     xs_front = lambda y: L if (y < -D - 1e-6 or y > W + D + 1e-6) else T - D      # verge underside reach
 
@@ -135,21 +152,45 @@ def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8
 
     # ---- gable frame front (x = T - D) and plaster panel (x = T) --------------------
     mid = lambda y: zu(y) - GABLE_RAF
-    is_post = lambda y: y < P - 1e-6 or y > W - P + 1e-6
+    in_extra = lambda y: any(a_ - 1e-6 < y < b_ + 1e-6 for a_, b_ in extra_posts)
+    is_post = lambda y: y < P - 1e-6 or y > W - P + 1e-6 or any(a_ < y < b_ for a_, b_ in extra_posts)
+    r0, r1, ry0, ry1 = rail if rail else (None, None, 0.0, 0.0)
+    has_rail = lambda y: rail is not None and ry0 - 1e-6 < y < ry1 + 1e-6
+    rows = lambda y: [0.0, r0, r1, mid(y)] if (rail and in_extra(y) and mid(y) > r1 + 0.05) else [0.0, mid(y)]
     for ca, cb in zip(C, C[1:]):
         ym = (ca + cb) / 2
         xf = T - D
-        bot = [V(xf, ca, 0.0), V(xf, cb, 0.0)]
         md = [V(xf, ca, mid(ca)), V(xf, cb, mid(cb))]
         top = [V(xf, ca, zu(ca)), V(xf, cb, zu(cb))]
         face([md[0], md[1], top[1], top[0]], "timber", "post" if is_post(ym) else "rafter")
         if is_post(ym):
-            face([bot[0], bot[1], md[1], md[0]], "timber", "post")
-        else:
-            face([V(T, ca, 0.0), V(T, cb, 0.0), V(T, cb, mid(cb)), V(T, ca, mid(ca))], "plaster", "panel")
+            za, zb_ = rows(ca), rows(cb)
+            if len(za) == len(zb_):
+                for k_ in range(len(za) - 1):
+                    face([V(xf, ca, za[k_]), V(xf, cb, zb_[k_]), V(xf, cb, zb_[k_ + 1]), V(xf, ca, za[k_ + 1])], "timber", "post")
+            else:
+                face([V(xf, ca, z) for z in za] + [V(xf, cb, z) for z in reversed(zb_)], "timber", "post")
+        elif has_rail(ym):                                    # panel / rail / panel
+            face([V(T, ca, 0.0), V(T, cb, 0.0), V(T, cb, r0), V(T, ca, r0)], "plaster", "panel")
+            face([V(T, ca, r0), V(T, cb, r0), V(xf, cb, r0), V(xf, ca, r0)], "timber", "rail")
+            face([V(xf, ca, r0), V(xf, cb, r0), V(xf, cb, r1), V(xf, ca, r1)], "timber", "rail")
+            face([V(xf, ca, r1), V(xf, cb, r1), V(T, cb, r1), V(T, ca, r1)], "timber", "rail")
+            face([V(T, ca, r1), V(T, cb, r1), V(T, cb, mid(cb)), V(T, ca, mid(ca))], "plaster", "panel")
+            face([V(T, ca, mid(ca)), V(T, cb, mid(cb)), md[1], md[0]], "timber", "rafter")
+        else:                                                 # a stud's split side rows stay on the panel's edge
+            face([V(T, cb, z) for z in rows(cb)] + [V(T, ca, z) for z in reversed(rows(ca))], "plaster", "panel")
             face([V(T, ca, mid(ca)), V(T, cb, mid(cb)), md[1], md[0]], "timber", "rafter")   # reveal under the rafter
     for y in (P, W - P):                                                        # post inner sides (reveals)
         face([V(T - D, y, 0.0), V(T, y, 0.0), V(T, y, mid(y)), V(T - D, y, mid(y))], "timber", "post")
+    for a_, b_ in extra_posts:                                                  # extra posts' sides
+        for y in (a_, b_):
+            zz = rows(y)
+            if has_rail(y + (0.01 if y == b_ else -0.01)) and len(zz) == 4:     # the rail side: flush, no reveal there
+                spans = [(zz[0], zz[1]), (zz[2], zz[3])]
+            else:
+                spans = list(zip(zz, zz[1:]))
+            for z0_, z1_ in spans:
+                face([V(T - D, y, z0_), V(T, y, z0_), V(T, y, z1_), V(T - D, y, z1_)], "timber", "post")
 
     # ---- corner posts' long-side arms (y = -D and W + D, x = T - D .. L) ------------------
     for y, yw in ((-D, 0.0), (W + D, W)):
@@ -158,10 +199,27 @@ def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8
         # the arm's end in the weld plane x = L: wall plane (yw) to the arm face (y)
         face([V(L, yw, 0.0), V(L, y, 0.0), V(L, y, mid(y)), V(L, y, zu(y)), V(L, yw, KNEE)], "timber", "post_end")
 
+    def _frame_foot(C_, P_, W_):
+        """the frame's bottom between the corner posts: panel feet at T, extra posts
+        stepping out to their front at T - D"""
+        out_ = []
+        for y in C_:
+            if not (P_ - 1e-6 <= y <= W_ - P_ + 1e-6):
+                continue
+            if any(abs(y - a_) < 1e-6 for a_, b_ in extra_posts):
+                out_ += [V(T, y, 0.0), V(T - D, y, 0.0)]
+            elif any(abs(y - b_) < 1e-6 for a_, b_ in extra_posts):
+                out_ += [V(T - D, y, 0.0), V(T, y, 0.0)]
+            elif any(a_ < y < b_ for a_, b_ in extra_posts):
+                out_.append(V(T - D, y, 0.0))            # a column through a post: its foot is at the front
+            else:
+                out_.append(V(T, y, 0.0))
+        return out_
+
     # ---- attic back face at x = L (the run's notch loop) -------------------------------
-    welded = bay_ob is not None and corner_ob is not None
+    welded = (bay_ob is not None and corner_ob is not None) or wall_loops is not None
     if welded:
-        front, back = wall_top_loop(bay_ob, corner_ob, L=L, T=T, W=W)
+        front, back = wall_loops if wall_loops is not None else wall_top_loop(bay_ob, corner_ob, L=L, T=T, W=W)
     for ca, cb in zip(notch_st, notch_st[1:]):
         if not welded:
             face([V(L, ca, 0.0), V(L, ca, mid(ca)), V(L, cb, mid(cb)), V(L, cb, 0.0)], "plaster", "back")
@@ -191,7 +249,7 @@ def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8
         # bottom outline (long-side arm, frame / panel, other arm), per side
         outline = ([V(L, -D, 0.0), V(T - D, -D, 0.0)]
                    + [V(T - D, y, 0.0) for y in C if -D + 1e-6 < y <= P + 1e-6]
-                   + [V(T, y, 0.0) for y in C if P - 1e-6 <= y <= W - P + 1e-6]
+                   + _frame_foot(C, P, W)
                    + [V(T - D, y, 0.0) for y in C if W - P - 1e-6 <= y < W + D - 1e-6]
                    + [V(T - D, W + D, 0.0), V(L, W + D, 0.0)])
         F = [V(x, y, 0.0) for (x, y) in front]
@@ -255,6 +313,17 @@ def build_gable_end(ob, run_ob, mats_by_kind, bay_ob=None, corner_ob=None, W=4.8
             set_window_uv(f, uvl, (1.5, 1.0), (0.12, 0.88, 0.43, 0.90), bounds={1: [0, W / 2, W], 2: [0, 2.4]})
         elif t == "post" or t == "post_end":
             set_beam_uv(f, uvl, "V", TI, 0.3, 0.0)
+        elif t == "rail":                                   # grain along the rail
+            n_ = f.normal
+            along = Vector((0.0, 1.0, 0.0))
+            a_ = (along - n_ * along.dot(n_))
+            if a_.length < 1e-3:
+                set_wrap_uv(f, uvl, (TI[0], TI[1]), (0.25, 0.0))
+            else:
+                a_.normalize(); c_ = n_.cross(a_).normalized()
+                for l in f.loops:
+                    p = l.vert.co
+                    l[uvl].uv = (0.4 + p.dot(c_) * TI[0], p.dot(a_) * TI[1])
         elif t == "rafter":                                 # grain along the slope
             c = f.calc_center_median()
             sgn = 1.0 if c.y < W / 2 else -1.0
