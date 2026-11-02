@@ -11,7 +11,7 @@ there) into its own repo on 2026-09-23, `main` branch. The shared
 level-texture library and the reference village/island files stayed behind
 in the sibling `Blend-Zen` repo on purpose -- see `NEXT_SESSION.md`.
 
-**Kit library**: `blender_work_dir/kit/KIT_WALLS.blend`, 75 asset-marked pieces
+**Kit library**: `work/kit/KIT_WALLS.blend`, 75 asset-marked pieces
 (packed textures, catalog, description, tags, rendered preview each), plus a
 hidden triangulated `_ZEN` copy of every one. Objects are laid out in a
 non-overlapping grid, one row per family, so browsing the file directly in
@@ -121,5 +121,4 @@ opening, not just a different material).
 ### Polish
 
 1. Revisit the stretched-UV check's thresholds once used on more pieces.
-2. `NW_VILLAGE_01.blend` (29 MB reference file) stays untracked in git by
-   design — revisit only if this branch becomes the long-term home for it.
+2. `reference/NW_VILLAGE_01.blend` (29 MB) is tracked in git; move it to Git LFS if the repo size becomes a problem.

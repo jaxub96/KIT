@@ -1,10 +1,10 @@
-# Builds blender_work_dir/kit/KIT_MAYA.blend (Maya family) and runs the weld tests.
+# Builds work/kit/KIT_MAYA.blend (Maya family) and runs the weld tests.
 #   Blender -b --factory-startup --python build_maya_kit.py -- SAVE [RENDER]
 
 import bpy, bmesh, json, math, sys
 from mathutils import Matrix, Vector, Euler
 S="/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/.claude/skills/gothic-kit-piece/scripts/"
-OUTBLEND="/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/blender_work_dir/kit/KIT_MAYA.blend"
+OUTBLEND="/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/work/kit/KIT_MAYA.blend"
 import os; SCR=os.path.join(os.path.dirname(os.path.abspath(__file__)), "maya_renders") + "/"; os.makedirs(SCR, exist_ok=True)
 ARGS=sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
 g={'__name__':'kit'}

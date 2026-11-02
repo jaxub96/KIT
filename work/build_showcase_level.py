@@ -1,4 +1,4 @@
-# Builds blender_work_dir/NW_KIT_SHOWCASE.blend: every kit piece made so
+# Builds work/NW_KIT_SHOWCASE.blend: every kit piece made so
 # far, in two areas.
 #
 #   CATALOG (north, y >= 40): one of each of the 23 pieces, unmerged and
@@ -11,14 +11,14 @@
 #   modular ground/road tiles. Each house is welded into one mesh the same
 #   way build_two_house_level.py's houses are.
 #
-#   blender --background --python blender_work_dir/build_showcase_level.py
+#   blender --background --python work/build_showcase_level.py
 #   (or exec() it through the blender MCP execute_blender_code tool)
 import bpy, bmesh, math, os
 from mathutils import Matrix, Vector
 
 ROOT = "/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/"
-KIT = ROOT + "blender_work_dir/kit/KIT_WALLS.blend"
-OUT = ROOT + "blender_work_dir/NW_KIT_SHOWCASE.blend"
+KIT = ROOT + "work/kit/KIT_WALLS.blend"
+OUT = ROOT + "work/NW_KIT_SHOWCASE.blend"
 exec(open(ROOT + ".claude/skills/gothic-kit-piece/scripts/kit_lib.py").read())
 
 bpy.ops.wm.read_homefile(use_empty=True)

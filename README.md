@@ -22,9 +22,9 @@ can stand alone as a Blender Asset Library.
 
 ## Layout
 
-- `blender_work_dir/kit/KIT_WALLS.blend` -- the kit library (open this as
+- `work/kit/KIT_WALLS.blend` -- the kit library (open this as
   a Blender Asset Library, see `KIT_USER_GUIDE.md` section 1).
-- `blender_work_dir/build_*.py` -- sample-scene generator scripts (village,
+- `work/build_*.py` -- sample-scene generator scripts (village,
   two-house demo, organic composition). None of them modify the kit
   library; each builds and saves its own separate output file.
 - `.claude/skills/gothic-kit-piece/` -- the piece-building skill: design
@@ -38,8 +38,8 @@ can stand alone as a Blender Asset Library.
   material not already packed into `KIT_WALLS.blend`. The kit's existing 75
   pieces don't need this at runtime (their materials are packed in), only
   new-piece development does.
-- **Reference assets**: `../Blend-Zen/blender_work_dir/NW_VILLAGE_01.blend`
-  and `G2ISLAND_WEB.blend` -- used only to study scale/palette/style when
+- **Reference assets**: `reference/NW_VILLAGE_01.blend` (in this repo)
+  and `../Blend-Zen/blender_work_dir/G2ISLAND_WEB.blend` -- used only to study scale/palette/style when
   designing new pieces. Never a runtime dependency of the shipped kit.
 
 Both assume this repo stays checked out as a sibling of `Blend-Zen` on disk

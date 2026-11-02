@@ -1,4 +1,4 @@
-# Builds blender_work_dir/NW_KIT_VILLAGE_ORGANIC.blend: a small village laid
+# Builds work/NW_KIT_VILLAGE_ORGANIC.blend: a small village laid
 # out the way NW_VILLAGE_01 (the reference asset) actually is -- buildings
 # scattered at VARIED angles (not a 90-degree grid) around a central well,
 # on a roughly circular clearing that rises into rolling hills at its edge,
@@ -17,13 +17,13 @@
 # octagonal watchtower, quads-only -- reads "round" without a pole or an
 # n-gon cap), WELL_A (the pond/well anchor).
 #
-#   blender --background --python blender_work_dir/build_organic_village.py
+#   blender --background --python work/build_organic_village.py
 import bpy, bmesh, math, os, random
 from mathutils import Matrix, Vector
 
 ROOT = "/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/"
-KIT = ROOT + "blender_work_dir/kit/KIT_WALLS.blend"
-OUT = ROOT + "blender_work_dir/NW_KIT_VILLAGE_ORGANIC.blend"
+KIT = ROOT + "work/kit/KIT_WALLS.blend"
+OUT = ROOT + "work/NW_KIT_VILLAGE_ORGANIC.blend"
 exec(open(ROOT + ".claude/skills/gothic-kit-piece/scripts/kit_lib.py").read())
 
 bpy.ops.wm.read_homefile(use_empty=True)

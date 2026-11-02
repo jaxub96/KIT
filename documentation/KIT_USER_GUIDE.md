@@ -6,7 +6,7 @@ Python, or any add-on** -- the kit is a normal Blender Asset Library.
 ## 1. Add the library (once)
 
 1. `Edit > Preferences > File Paths > Asset Libraries > +`
-2. Pick the folder `blender_work_dir/kit/` (the one that contains
+2. Pick the folder `work/kit/` (the one that contains
    `blender_assets.cats.txt` and the `KIT_*.blend` files). Name it
    `Gothic Kit`.
 

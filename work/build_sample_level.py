@@ -1,7 +1,7 @@
-# Builds blender_work_dir/NW_SAMPLE_LEVEL.blend: a small Gothic-style sample level
+# Builds work/NW_SAMPLE_LEVEL.blend: a small Gothic-style sample level
 # (terrain + welded two-storey kit house + a road that starts at the front door).
 #
-#   blender --background --python blender_work_dir/build_sample_level.py
+#   blender --background --python work/build_sample_level.py
 #   (or exec() it through the blender MCP execute_blender_code tool)
 #
 # Conventions (see .claude/skills/gothic-terrain-piece): one connected quad grid,
@@ -12,8 +12,8 @@ import bpy, bmesh, math, os
 from mathutils import Matrix, Vector
 
 ROOT = "/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/"
-KIT = ROOT + "blender_work_dir/kit/KIT_WALLS.blend"
-OUT = ROOT + "blender_work_dir/NW_SAMPLE_LEVEL.blend"
+KIT = ROOT + "work/kit/KIT_WALLS.blend"
+OUT = ROOT + "work/NW_SAMPLE_LEVEL.blend"
 exec(open(ROOT + ".claude/skills/gothic-kit-piece/scripts/kit_lib.py").read())
 
 bpy.ops.wm.read_homefile(use_empty=True)

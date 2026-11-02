@@ -1,15 +1,15 @@
-# Builds blender_work_dir/NW_SAMPLE_LEVEL_2HOUSES.blend: two different welded
+# Builds work/NW_SAMPLE_LEVEL_2HOUSES.blend: two different welded
 # kit houses connected by the modular terrain/yard/road tiles (not the
 # one-off procedural terrain build_sample_level.py used).
 #
-#   blender --background --python blender_work_dir/build_two_house_level.py
+#   blender --background --python work/build_two_house_level.py
 #   (or exec() it through the blender MCP execute_blender_code tool)
 import bpy, bmesh, math, os
 from mathutils import Matrix, Vector
 
 ROOT = "/Users/jakubjaworski/Creativity/Blender Projects/Blender User Scripts/KIT/"
-KIT = ROOT + "blender_work_dir/kit/KIT_WALLS.blend"
-OUT = ROOT + "blender_work_dir/NW_SAMPLE_LEVEL_2HOUSES.blend"
+KIT = ROOT + "work/kit/KIT_WALLS.blend"
+OUT = ROOT + "work/NW_SAMPLE_LEVEL_2HOUSES.blend"
 exec(open(ROOT + ".claude/skills/gothic-kit-piece/scripts/kit_lib.py").read())
 
 bpy.ops.wm.read_homefile(use_empty=True)

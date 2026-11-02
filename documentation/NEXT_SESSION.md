@@ -13,11 +13,11 @@ Last updated 2026-09-23.
   absolute/relative sibling path, not copied here: the shared level-texture
   library (`../Blend-Zen/asset_catalog/materials_levels.blend`, used by
   `kit_lib.py`'s `ensure_material()`) and the reference village/island files
-  (`../Blend-Zen/blender_work_dir/NW_VILLAGE_01.blend`, `G2ISLAND_WEB.blend`)
+  (`reference/NW_VILLAGE_01.blend` in this repo, and `../Blend-Zen/blender_work_dir/G2ISLAND_WEB.blend`)
   used only for scale/palette study, never as a live dependency of the
   shipped kit (its 75 pieces have their materials packed inside
   `KIT_WALLS.blend` already).
-- The kit library is `blender_work_dir/kit/KIT_WALLS.blend` (renamed from
+- The kit library is `work/kit/KIT_WALLS.blend` (renamed from
   `KIT_WALLS.blend`) — 75 pieces, laid out in a non-overlapping grid by
   family, previews regenerated and correct. `build_showcase_level.py` /
   `build_sample_level.py` / `build_two_house_level.py` /
@@ -84,7 +84,7 @@ Last updated 2026-09-23.
   (`KIT_FLOOR_STAIRWELL_A`/`_END_A` via `floor_tile.build_floor_tile(hole=)`,
   `KIT_MAYA_FLOOR_UPPER_STAIRWELL_A` via `maya_bay.build_maya_floor_stairwell`).
   Stair and stairwell share the room-corner origin; 1 m flight along the y=4
-  wall. Added to the libraries with `blender_work_dir/add_stair_pieces.py`
+  wall. Added to the libraries with `work/add_stair_pieces.py`
   (additive, doesn't rebuild anything else). Every riser but the first rakes
   back 3 cm so the sides are single quad strips.
 - **Level-building guide (2026-09-26)**: lives outside this repo, in

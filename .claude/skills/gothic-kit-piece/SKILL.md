@@ -10,10 +10,9 @@ creative pieces a level designer snaps together to make towns, buildings and
 roads. Pieces are authored from scratch. The village file and island files
 are **reference for scale, palette and style only** -- never cut pieces out
 of them. This kit lives in its own repo, split out of the original `Blend-Zen`
-project on 2026-09-23; those reference files were left behind there and are
-NOT part of this repo -- they live at the sibling path
-`../Blend-Zen/blender_work_dir/NW_VILLAGE_01.blend` (and `G2ISLAND_WEB.blend`)
-on disk. Same for the shared level-texture library (see below).
+project on 2026-09-23; the village reference now lives in this repo at
+`reference/NW_VILLAGE_01.blend`; `G2ISLAND_WEB.blend` stayed in the sibling
+`../Blend-Zen/blender_work_dir/`. Same for the shared level-texture library (see below).
 
 Companions: `scripts/kit_lib.py` (tested helpers -- exec it, don't reinvent),
 and the `gothic-terrain-piece` skill (same material/UV/flat-shading
@@ -880,7 +879,7 @@ absolute paths. Every piece must therefore ship as:
   (`image.pack()`), never referenced by a path on this machine. Materials
   are the plain library recipe, so a user can swap them.
 - **A real Blender asset**: `mark_single`, a catalog under `Kit/<Family>`
-  (catalogs live in `blender_work_dir/kit/blender_assets.cats.txt`, written
+  (catalogs live in `work/kit/blender_assets.cats.txt`, written
   *before* assigning `catalog_id`), a human `description` (size in metres,
   snap planes, origin), tags, author, and a **rendered preview**.
 - **Placeable by eye**: origin at floor level on the snap corner, bounding
@@ -913,7 +912,7 @@ kit file itself, all images report `packed_file`.
   `Mobs/*` prop catalogs in `blender_assets.cats.txt`).
 - Lay the kit out on a labelled shelf grid (10 m spacing, families in rows)
   in the library `.blend` -- one library file per family group under
-  `blender_work_dir/kit/`.
+  `work/kit/`.
 
 ## Recipes for common quad-only problems
 
