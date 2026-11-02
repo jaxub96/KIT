@@ -30,6 +30,9 @@ can stand alone as a Blender Asset Library.
 - `.claude/skills/gothic-kit-piece/` -- the piece-building skill: design
   rules, helper library (`scripts/kit_lib.py`, `scripts/weld_pieces.py`,
   etc.), and per-family piece scripts.
+- `.claude/skills/gothic-terrain-piece/` -- companion skill for terrain and
+  small level-art pieces (moved here from `Blend-Zen`). It uses
+  `../Blend-Zen/blender_work_dir/G2ISLAND_WEB.blend` as its style reference.
 
 ## External dependencies (intentionally left in the sibling `Blend-Zen` repo)
 
