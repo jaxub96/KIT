@@ -48,6 +48,8 @@ if KIT == "gothic":
     fm = bpy.data.objects["KIT_FLOOR_A"].data.materials              # the floor's current materials
     mats = {"floor": fm[0], "timber": fm[1]}
     for i, (n, closed) in enumerate((("KIT_FLOOR_STAIRWELL_A", False), ("KIT_FLOOR_STAIRWELL_END_A", True))):
+        if n in bpy.data.objects:
+            continue        # the kit's tiles are hand-simplified closed slabs now: never rebuild them
         ob = piece(n, coll, (24.0 + 6 * i, 100.2, 0.0))
         out[n] = g['build_floor_tile'](ob, mats, closed_x0=closed, hole=g['STAIRWELL'])
         asset(ob, "FLOORS", ("4 x 4 m upper floor tile with a 2.84 x 1 m stairwell against the y=4 wall "

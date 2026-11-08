@@ -5,7 +5,7 @@
 import bpy, os
 S = os.path.dirname(os.path.abspath(__file__)) + "/"
 g = {"__name__": "kit"}
-for f in ("kit_lib.py", "wall_l_inner.py"):
+for f in ("kit_lib.py", "wall_l_inner.py", "fix_stretched_uvs.py"):
     exec(compile(open(S + f).read(), S + f, "exec"), g)
 
 WALLS_CAT = "3bc920fb-3690-47d9-93bb-93041a16a9ff"      # Kit/WALLS
@@ -39,6 +39,7 @@ for i, (name, a, b, head, tags) in enumerate(PIECES):
         coll.objects.link(ob)
     ob.location = (x0 + i * 6.0, 20.2, 0.0)
     r = g["build_l_inner"](ob, bpy.data.objects[a].data, bpy.data.objects[b].data)
+    g["fix_mesh"](ob.data)      # re-project stretched timber faces (fix_stretched_uvs.py)
     report[name] = {k: v for k, v in r.items() if k.endswith("_bad") and v}
     ob["kit_origin"] = "see description"
     ob["kit_style"] = "city_timber"

@@ -3,16 +3,16 @@
 import bpy, os
 S = os.path.dirname(os.path.abspath(__file__)) + "/"
 g = {"__name__": "kit"}
-for f in ("kit_lib.py", "weld_pieces.py", "stone_bay.py", "wall_l_inner.py"):
+for f in ("kit_lib.py", "weld_pieces.py", "stone_bay.py", "wall_l_inner.py", "fix_stretched_uvs.py"):
     exec(compile(open(S + f).read(), S + f, "exec"), g)
 
 WALLS_CAT = "3bc920fb-3690-47d9-93bb-93041a16a9ff"      # Kit/WALLS
-stone = g["ensure_material"]("NW_Seq_Maya_Stone_GreyTrans_03_XL")
+stone = g["ensure_material"]("NW_Seq_Maya_GreyWall_16")              # full tile, ground to girt
 for n in stone.node_tree.nodes:
     if n.type == 'TEX_IMAGE' and n.image and not n.image.packed_file:
         n.image.pack()
 M = {"stone": stone, "timber": bpy.data.objects["KIT_WALL_PLAIN_A"].data.materials[1]}
-COMMON = ("Rubble-stone ground floor (mossy at the foot) under a jettied timber storey: the stone face is set "
+COMMON = ("Rubble-stone ground floor under a jettied timber storey: the stone face is set "
           "0.3 m back from the timber walls above, and a timber girt with brackets carries the overhang. "
           "Same grid point and rotation as the timber ground bay it replaces (origin on the floor at the upper "
           "wall's inside face, left end; front faces -Y). Open ends and an open top seam: welds to the next stone "
@@ -32,6 +32,9 @@ PIECES = [
      "mitre, like KIT_WALL_L_INNER_A). Origin = the inside corner point. ", ["corner", "stone", "inner corner", "L"]),
     ("KIT_WALL_STONE_L_INNER_WINDOW_A", "L:plain:window", "Inner-corner L for the stone ground floor, window on leg B. "
      "Origin = the inside corner point. ", ["corner", "stone", "inner corner", "L", "window"]),
+    ("KIT_WALL_STONE_L_INNER_WINDOW_B", "L:window:plain", "Inner-corner L for the stone ground floor, window on leg A "
+     "(the other hand of KIT_WALL_STONE_L_INNER_WINDOW_A). Origin = the inside corner point. ",
+     ["corner", "stone", "inner corner", "L", "window"]),
 ]
 KINDS_BAY = ("plain", "window", "door", "door_wide")
 coll = bpy.data.collections["KIT_WALL"]
@@ -52,6 +55,7 @@ for i, (name, kind, head, tags) in enumerate(PIECES):
         r = g["build_l_inner"](ob, bpy.data.objects[nm[a]].data, bpy.data.objects[nm[b]].data, plaster_slot=None)
     else:
         r = g["build_stone_bay"](ob, M, kind=kind)
+    g["fix_mesh"](ob.data)      # re-project stretched timber faces (fix_stretched_uvs.py)
     report[name] = {k: v for k, v in r.items() if k.endswith("_bad") and v}
     ob["kit_origin"] = "see description"
     ob["kit_style"] = "city_timber_stone"

@@ -135,12 +135,14 @@ def gothic_stair_uv(f, uvl, kind, info):
         row = (k * 3 + (1 if kind == "riser" else 0)) % 4
         n = f.normal
         vs = [l.vert.co for l in f.loops]
+        # a board spans one going; narrower faces (the 1 cm top ledge) take
+        # their share of it instead of stretching a whole board over 1 cm
         if kind == "tread":
             a0, a1 = min(c.x for c in vs), max(c.x for c in vs)
-            span = lambda c: (c.x - a0) / max(a1 - a0, 1e-6)
+            span = lambda c: (c.x - a0) / max(a1 - a0, info["going"] - RAKE)
         else:
             a0, a1 = min(c.z for c in vs), max(c.z for c in vs)
-            span = lambda c: (c.z - a0) / max(a1 - a0, 1e-6)
+            span = lambda c: (c.z - a0) / max(a1 - a0, info["h"])
         for l in f.loops:
             c = l.vert.co
             l[uvl].uv = (c.y * 0.5 + k * 0.37, row * 0.25 + 0.01 + span(c) * 0.23)
@@ -149,7 +151,9 @@ def gothic_stair_uv(f, uvl, kind, info):
     # strap becomes bands on the stringer), U across it (one beam per 0.5 m)
     d = Vector((1.0, 0.0, info["tanp"])).normalized()
     o = Vector((info["x0"], 0.0, info["z0"]))
-    across = Vector((0, 1, 0)) if kind == "soffit" else Vector((-d.z, 0.0, d.x))
+    # soffit and the end face against the stairwell rim (facing +-x) run across
+    # the flight in y; the stringer sides (facing +-y) across the pitch in xz
+    across = Vector((0, 1, 0)) if kind == "soffit" or abs(f.normal.y) < 0.5 else Vector((-d.z, 0.0, d.x))
     set_directional_uv(f, uvl, o, across, d, 0.5, 1.0)
 
 

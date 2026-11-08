@@ -16,10 +16,10 @@
 # same grid point / rotation as the timber ground bay it replaces.
 #
 # Openings use the timber bays' rows (window 1.5-2.5 x 1.62-2.70, so the kit's
-# glazing fits, moved JETTY inward), doors are round-arched. The mossy stone
-# texture (NW_Seq_Maya_Stone_GreyTrans_03_XL: stone with a grass/moss band at
-# its bottom edge) shows its moss only along the foot of the wall: above
-# FOLD0 the v coordinate mirror-repeats inside the clean stone part.
+# glazing fits, moved JETTY inward), doors are round-arched. Stone (2026-11-08):
+# the full tile NW_Seq_Maya_GreyWall_16 (512 x 512) from the ground up, plain
+# repeat (no mirroring), every 2 m = 256 px/m (sharp; two tiles per 4 m bay so
+# bays and corners stay continuous).
 # Welding (2026-10-04): every bay carries the same end rows (Z_ALL, the union of
 # every kind's rows) and is OPEN at x = 0 / 4, so any two bays weld like the timber
 # bays; corners are the end loop mitre-swept (build_stone_corner), inner corners the
@@ -34,10 +34,8 @@ Y_OUT = -0.4 + JETTY                 # stone outer face
 GIRT = (2.75, 3.00)                  # girt beam z range
 GIRT_Y = -0.56                       # girt front = the upper storey's seam front (-0.4 - SEAM_D)
 BRACKET = (2.40, 0.07)               # bracket bottom z, half width
-KU, KV = 0.25, 0.5                   # stone UV per metre (1024x512 texture = 4 x 2 m)
-FOLD0, FOLD = 0.46, 1.16             # moss band height (= door threshold row), then the clean stone's mirror period (fold row 1.62)
-V1 = 1.0 - FOLD * KV                 # the clean stone band ends at the texture's top
-V0, V2 = V1 - FOLD0 * KV, 1.0       # moss band runs continuously into it at FOLD0
+KU, KV = 0.5, 0.5                    # stone UV per metre: 512x512 GreyWall_16 every 2 m = 256 px/m
+FOLD0, FOLD = 0.46, 1.16             # door threshold row; FOLD only keeps the old row split
 TI = (300 / 256, 300 / 512)
 STONE_WIN = (1.5, 2.5, 1.62, 2.62)
 STONE_SILL = (1.40, 2.60, 1.50, 1.62)
@@ -58,29 +56,18 @@ APEX = 2.62                          # every opening's top (window, both arches)
 ZS = (0.0, 0.46, 1.50, 1.62, 2.02, 2.40, 2.62, 2.75, 3.0)
 
 
-def stone_v(z):
-    """v of the stone texture at height z: moss band at the foot, then the
-    clean stone mirror-repeated (continuous across every fold row)."""
-    if z <= FOLD0:
-        return V0 + z * KV
-    t = (z - FOLD0) * KV
-    span = FOLD * KV
-    seg = int(t / span + 1e-9)
-    frac = t - seg * span
-    return V1 + frac if seg % 2 == 0 else V2 - frac
-
-
 def stone_uv(f, uvl, along_x=True):
+    """Full-tile stone UVs: plain repeat, continuous across every row."""
     n = f.normal
     if abs(n.z) > 0.7:                                # sills, reveals' tops / bottoms, wall top
         for l in f.loops:
             c = l.vert.co
-            l[uvl].uv = (c.x * KU, V1 + 0.2 + c.y * KV)
+            l[uvl].uv = (c.x * KU, 0.2 + c.y * KV)
         return
     for l in f.loops:
         c = l.vert.co
         a = c.x if abs(n.y) >= abs(n.x) else c.y
-        l[uvl].uv = (a * KU, stone_v(c.z))
+        l[uvl].uv = (a * KU, c.z * KV)
 
 
 def _arch_grid(x0, x1, spring, n=16):
@@ -283,6 +270,7 @@ def build_stone_corner(ob, bay_ob, mats):
         if kinds[f] == 1:
             set_beam_uv(f, uvl, "H", TI, 0.12, GIRT[0])
         else:
+            f.material_index = 0
             stone_uv(f, uvl)
     write_piece(ob, bm)
     bm.free()
